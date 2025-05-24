@@ -12,16 +12,17 @@ TREE_LAST_BRANCH = "└── "
 TREE_VERTICAL = "│   "
 TREE_INDENT = "    " # Spazi per l'ultimo ramo
 
-def add_items_to_structure(directory, prefix, lines_list, php_list, target_directory):
+def add_items_to_structure(directory, prefix, lines_list, php_list, js_list, target_directory):
     """
     Aggiunge ricorsivamente gli elementi di una directory alla lista della struttura
-    e raccoglie i file PHP.
+    e raccoglie i file PHP e JS.
 
     Args:
         directory (str): Il percorso della directory corrente da elaborare.
         prefix (str): Il prefisso di indentazione per gli elementi in questa directory.
         lines_list (list): La lista dove aggiungere le stringhe della struttura.
         php_list (list): La lista dove aggiungere i percorsi relativi dei file PHP.
+        js_list (list): La lista dove aggiungere i percorsi relativi dei file JS.
         target_directory (str): Il percorso della directory di origine (per calcolare i percorsi relativi).
     """
     # Ottieni tutti gli elementi (file e directory) nella directory corrente
@@ -33,8 +34,8 @@ def add_items_to_structure(directory, prefix, lines_list, php_list, target_direc
         print(f"Attenzione: Errore durante l'accesso alla directory '{directory}' - {e}")
         return # Esci dalla ricorsione per questo ramo
 
-    # Filtra gli elementi nascosti (quelli che iniziano con '.')
-    items = [item for item in items if not item.startswith('.')]
+    # Filtra gli elementi nascosti (quelli che iniziano con '.') e la directory 'bin'
+    items = [item for item in items if not item.startswith('.') and item.lower() != 'bin']
 
     # Ordina gli elementi (directory e file) per avere un output coerente
     items.sort()
@@ -60,19 +61,86 @@ def add_items_to_structure(directory, prefix, lines_list, php_list, target_direc
 
         # Se l'elemento è una directory, chiama ricorsivamente la funzione
         if os.path.isdir(item_path):
-            add_items_to_structure(item_path, next_prefix, lines_list, php_list, target_directory)
-        # Se è un file PHP, aggiungilo alla lista dei file PHP
-        elif os.path.isfile(item_path) and item_name.lower().endswith('.php'):
-             # Calcola il percorso relativo rispetto alla target_directory
+            add_items_to_structure(item_path, next_prefix, lines_list, php_list, js_list, target_directory)
+        # Se è un file di interesse, aggiungilo alla lista appropriata
+        elif os.path.isfile(item_path):
+            # Calcola il percorso relativo rispetto alla target_directory
             relative_path = os.path.relpath(item_path, target_directory)
-            php_list.append(relative_path)
+            
+            if item_name.lower().endswith('.php'):
+                php_list.append(relative_path)
+            elif item_name.lower().endswith('.js'):
+                js_list.append(relative_path)
+
+
+def write_file_section(f, title, file_list, target_directory, file_type):
+    """
+    Scrive una sezione per un tipo specifico di file nel report.
+    
+    Args:
+        f: File handle aperto per la scrittura
+        title (str): Titolo della sezione
+        file_list (list): Lista dei percorsi relativi dei file
+        target_directory (str): Directory di base per costruire i percorsi completi
+        file_type (str): Tipo di file per il syntax highlighting (es. 'php', 'javascript')
+    """
+    f.write(f"# {title}\n\n")
+    if file_list:
+        for index, file_rel_path in enumerate(file_list):
+            f.write(f"{index + 1}. {file_rel_path}\n")
+            f.write("\n") # Aggiungi una riga vuota
+
+            # Per leggere il file, dobbiamo ricostruire il percorso completo
+            file_full_path = os.path.join(target_directory, file_rel_path)
+
+            # Leggi il contenuto del file
+            try:
+                with open(file_full_path, 'r', encoding='utf-8') as file_f:
+                    file_content = file_f.read()
+            except Exception as e:
+                file_content = f"Errore durante la lettura del file '{file_rel_path}': {e}"
+                print(f"Attenzione: impossibile leggere il file '{file_full_path}' - {e}")
+
+            # Scrivi il contenuto all'interno di un blocco di codice con syntax highlighting appropriato
+            f.write(f"```{file_type}\n")
+            f.write(file_content)
+            f.write("\n```\n\n") # Chiudi il blocco di codice e aggiungi righe vuote di separazione
+    else:
+        f.write(f"Nessun file da riportare per questa sezione.\n\n")
+
+
+def write_readme_section(f, target_directory):
+    """
+    Scrive la sezione README.md se il file esiste nella directory root.
+    
+    Args:
+        f: File handle aperto per la scrittura
+        target_directory (str): Directory di base dove cercare README.md
+    """
+    readme_path = os.path.join(target_directory, 'README.md')
+    
+    f.write("# README.md\n\n")
+    
+    if os.path.isfile(readme_path):
+        try:
+            with open(readme_path, 'r', encoding='utf-8') as readme_f:
+                readme_content = readme_f.read()
+            
+            f.write("```markdown\n")
+            f.write(readme_content)
+            f.write("\n```\n\n")
+        except Exception as e:
+            f.write(f"Errore durante la lettura del file README.md: {e}\n\n")
+            print(f"Attenzione: impossibile leggere il file README.md - {e}")
+    else:
+        f.write("Nessun file README.md trovato nella directory principale.\n\n")
 
 
 def generate_folder_summary(target_directory):
     """
     Genera una rappresentazione ASCII della struttura della cartella (stile 'tree'),
-    elenca i file .php trovati (con percorsi relativi) e riporta il loro contenuto.
-    Esclude file e directory nascosti (quelli che iniziano con '.').
+    e riporta il contenuto di README.md, file *.php e file *.js.
+    Esclude file e directory nascosti (quelli che iniziano con '.') e la directory 'bin'.
 
     Args:
         target_directory (str): Il percorso della cartella da analizzare.
@@ -86,24 +154,21 @@ def generate_folder_summary(target_directory):
 
     structure_lines = []
     php_files_relative = []
+    js_files_relative = []
 
     # Aggiungi la riga radice all'inizio della struttura visuale
     structure_lines.append(f"{os.path.basename(target_directory)}/")
 
     # Avvia la generazione della struttura ad albero chiamando la funzione ricorsiva
-    # Passiamo la directory target, un prefisso iniziale vuoto, le liste da popolare,
-    # e la directory target stessa per i percorsi relativi.
-    # La funzione ricorsiva inizierà a listare gli *elementi* nella directory target.
-    add_items_to_structure(target_directory, "", structure_lines, php_files_relative, target_directory)
+    add_items_to_structure(target_directory, "", structure_lines, php_files_relative, 
+                          js_files_relative, target_directory)
 
-
-    # Ordina i percorsi dei file PHP relativi raccolti
+    # Ordina i percorsi dei file raccolti
     php_files_relative.sort()
+    js_files_relative.sort()
 
-    # --- CAMBIATO NOME FILE OUTPUT ---
     # Percorso del file di output (SUNTO.md nella directory target)
     output_path = os.path.join(target_directory, 'SUNTO.md')
-    # --- FINE CAMBIO NOME ---
 
     # Scrivi il riassunto nel file markdown
     try:
@@ -114,44 +179,21 @@ def generate_folder_summary(target_directory):
             f.write("\n".join(structure_lines)) # Scrive le righe della struttura generate
             f.write("\n```\n\n")
 
-            # --- Sezione Elenco File PHP (percorsi relativi) ---
-            f.write("# File PHP trovati (percorsi relativi)\n\n")
-            if php_files_relative:
-                for php_file_rel_path in php_files_relative:
-                    f.write(f"* {php_file_rel_path}\n")
-            else:
-                f.write("Nessun file *.php trovato in questa cartella e nelle sottocartelle.\n")
+            # --- Sezione README.md ---
+            write_readme_section(f, target_directory)
+            
+            # --- Sezione File PHP ---
+            write_file_section(f, "File PHP", php_files_relative, target_directory, "php")
+            
+            # --- Sezione File JavaScript ---
+            write_file_section(f, "File JavaScript", js_files_relative, target_directory, "javascript")
 
-            f.write("\n") # Aggiungi una riga vuota per separare le sezioni
-
-            # --- Sezione Contenuto File PHP (con percorsi relativi) ---
-            f.write("# Contenuto dei file PHP\n\n")
-            if php_files_relative:
-                for index, php_file_rel_path in enumerate(php_files_relative):
-                    f.write(f"{index + 1}. {php_file_rel_path}\n")
-                    f.write("\n") # Aggiungi una riga vuota
-
-                    # Per leggere il file, dobbiamo ricostruire il percorso completo
-                    php_file_full_path_to_read = os.path.join(target_directory, php_file_rel_path)
-
-                    # Leggi il contenuto del file
-                    try:
-                        with open(php_file_full_path_to_read, 'r', encoding='utf-8') as php_f:
-                            file_content = php_f.read()
-                    except Exception as e:
-                        file_content = f"Errore durante la lettura del file '{php_file_rel_path}': {e}"
-                        print(f"Attenzione: impossibile leggere il file '{php_file_full_path_to_read}' - {e}")
-
-                    # Scrivi il contenuto all'interno di un blocco di codice PHP Markdown
-                    f.write("```php\n")
-                    f.write(file_content)
-                    f.write("\n```\n\n") # Chiudi il blocco di codice e aggiungi righe vuote di separazione
-
-            else:
-                 f.write("Nessun file *.php trovato da riportare.\n")
-
-
-        print(f"Report generato con successo: '{output_path}' (elementi nascosti esclusi).")
+        total_files = len(php_files_relative) + len(js_files_relative)
+        readme_exists = os.path.isfile(os.path.join(target_directory, 'README.md'))
+        
+        print(f"Report generato con successo: '{output_path}' (elementi nascosti e directory 'bin' esclusi).")
+        print(f"README.md: {'trovato' if readme_exists else 'non trovato'}")
+        print(f"File processati: {len(php_files_relative)} PHP, {len(js_files_relative)} JS (totale: {total_files})")
 
     except IOError as e:
         print(f"Errore durante la scrittura del file '{output_path}': {e}")
