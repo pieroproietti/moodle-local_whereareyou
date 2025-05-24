@@ -58,3 +58,30 @@ Se riscontri problemi, usa la **pagina di test** per debuggare:
 1. Site administration > Local plugins > WhereAreYou Test Page
 2. Controlla la console browser per errori JavaScript
 3. Testa il salvataggio e il reset dei dati
+
+# Panoramica Tecnica
+
+**Tipo**: Plugin Moodle con versioning (usa nuovo sistema Hook)
+**Architettura chiave**:
+- Hook: Sistema moderno di hook per iniettare funzionalità
+- Template: Mustache per rendering interfacce
+- JavaScript: Moduli AMD/RequireJS per funzionalità client-side
+- AJAX: Endpoint per comunicazione asincrona
+- Installazione: Setup automatico database/configurazione
+
+**File critici**:
+- `ajax.php` - Endpoint AJAX
+- `classes/hook_callbacks.php` - Logica principale hook
+- `version.php` - Metadata plugin
+- `amd/src/modal.js` - Modulo JavaScript principale
+- `templates/modal.mustache` - Template interfaccia
+
+# Flusso Funzionale
+
+**Flusso identificato (Modal post-login)**:
+1. **Hook rileva evento** → inietta JavaScript nell'header della pagina
+2. **JavaScript si carica** → utilizza RequireJS per caricare moduli
+3. **Modal si attiva** → mostra interfaccia all'utente
+4. **Utente interagisce** → seleziona opzioni e conferma
+5. **Salvataggio AJAX** → invia dati al server per persistenza
+6. **Controlli sessione** → previene ri-visualizzazione indesiderata

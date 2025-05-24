@@ -12,10 +12,32 @@ TREE_LAST_BRANCH = "└── "
 TREE_VERTICAL = "│   "
 TREE_INDENT = "    " # Spazi per l'ultimo ramo
 
-def add_items_to_structure(directory, prefix, lines_list, php_list, js_list, target_directory):
+# File da riassumere invece di mostrare completamente
+SUMMARIZE_FILES = {
+    'debug.php': 'File di debug amministrativo per troubleshooting del plugin',
+    'test.php': 'Pagina di test per amministratori per testare la modal senza login/logout',
+    'settings.php': 'Configurazione amministrativa - aggiunge pagine al menu admin'
+}
+
+# File da escludere completamente
+EXCLUDE_FILES = ['.min.js.map', '.min.css.map']
+
+def should_exclude_file(filename, include_minified=False):
+    """Determina se un file dovrebbe essere escluso dal sunto"""
+    # Escludi sempre i file map
+    if any(filename.endswith(ext) for ext in EXCLUDE_FILES):
+        return True
+    
+    # Escludi file minificati se richiesto
+    if not include_minified and (filename.endswith('.min.js') or filename.endswith('.min.css')):
+        return True
+        
+    return False
+
+def add_items_to_structure(directory, prefix, lines_list, php_list, js_list, mustache_list, target_directory, include_minified=False):
     """
     Aggiunge ricorsivamente gli elementi di una directory alla lista della struttura
-    e raccoglie i file PHP e JS.
+    e raccoglie i file PHP, JS e Mustache.
 
     Args:
         directory (str): Il percorso della directory corrente da elaborare.
@@ -23,7 +45,9 @@ def add_items_to_structure(directory, prefix, lines_list, php_list, js_list, tar
         lines_list (list): La lista dove aggiungere le stringhe della struttura.
         php_list (list): La lista dove aggiungere i percorsi relativi dei file PHP.
         js_list (list): La lista dove aggiungere i percorsi relativi dei file JS.
+        mustache_list (list): La lista dove aggiungere i percorsi relativi dei file Mustache.
         target_directory (str): Il percorso della directory di origine (per calcolare i percorsi relativi).
+        include_minified (bool): Se includere file minificati.
     """
     # Ottieni tutti gli elementi (file e directory) nella directory corrente
     try:
@@ -61,9 +85,13 @@ def add_items_to_structure(directory, prefix, lines_list, php_list, js_list, tar
 
         # Se l'elemento è una directory, chiama ricorsivamente la funzione
         if os.path.isdir(item_path):
-            add_items_to_structure(item_path, next_prefix, lines_list, php_list, js_list, target_directory)
+            add_items_to_structure(item_path, next_prefix, lines_list, php_list, js_list, mustache_list, target_directory, include_minified)
         # Se è un file di interesse, aggiungilo alla lista appropriata
         elif os.path.isfile(item_path):
+            # Controlla se escludere il file
+            if should_exclude_file(item_name, include_minified):
+                continue
+                
             # Calcola il percorso relativo rispetto alla target_directory
             relative_path = os.path.relpath(item_path, target_directory)
             
@@ -71,6 +99,8 @@ def add_items_to_structure(directory, prefix, lines_list, php_list, js_list, tar
                 php_list.append(relative_path)
             elif item_name.lower().endswith('.js'):
                 js_list.append(relative_path)
+            elif item_name.lower().endswith('.mustache'):
+                mustache_list.append(relative_path)
 
 
 def write_file_section(f, title, file_list, target_directory, file_type):
@@ -82,7 +112,7 @@ def write_file_section(f, title, file_list, target_directory, file_type):
         title (str): Titolo della sezione
         file_list (list): Lista dei percorsi relativi dei file
         target_directory (str): Directory di base per costruire i percorsi completi
-        file_type (str): Tipo di file per il syntax highlighting (es. 'php', 'javascript')
+        file_type (str): Tipo di file per il syntax highlighting (es. 'php', 'javascript', 'handlebars')
     """
     f.write(f"# {title}\n\n")
     if file_list:
@@ -92,11 +122,30 @@ def write_file_section(f, title, file_list, target_directory, file_type):
 
             # Per leggere il file, dobbiamo ricostruire il percorso completo
             file_full_path = os.path.join(target_directory, file_rel_path)
+            filename = os.path.basename(file_rel_path)
+
+            # Controlla se è un file da riassumere
+            if filename in SUMMARIZE_FILES:
+                f.write(f"**[RIASSUNTO]** - {SUMMARIZE_FILES[filename]}\n\n")
+                continue
 
             # Leggi il contenuto del file
             try:
                 with open(file_full_path, 'r', encoding='utf-8') as file_f:
                     file_content = file_f.read()
+                    
+                # Per file JavaScript molto lunghi, considera un riassunto
+                if file_type == 'javascript' and len(file_content) > 10000:  # > 10KB
+                    lines = file_content.split('\n')
+                    if len(lines) > 200:  # > 200 righe
+                        # Mostra solo le prime 50 righe + commento
+                        preview_lines = lines[:50]
+                        f.write(f"```{file_type}\n")
+                        f.write('\n'.join(preview_lines))
+                        f.write(f"\n\n// ... [File troncato: {len(lines)} righe totali, prime 50 mostrate] ...\n")
+                        f.write("```\n\n")
+                        continue
+                        
             except Exception as e:
                 file_content = f"Errore durante la lettura del file '{file_rel_path}': {e}"
                 print(f"Attenzione: impossibile leggere il file '{file_full_path}' - {e}")
@@ -136,14 +185,106 @@ def write_readme_section(f, target_directory):
         f.write("Nessun file README.md trovato nella directory principale.\n\n")
 
 
-def generate_folder_summary(target_directory):
+def write_technical_overview(f, php_files, js_files, mustache_files, target_directory):
+    """
+    Scrive la sezione panoramica tecnica basata sui file analizzati.
+    """
+    f.write("# Panoramica Tecnica\n\n")
+    
+    # Analizza i file per determinare il tipo di plugin
+    plugin_type = "Plugin Moodle"
+    if any('version.php' in php for php in php_files):
+        plugin_type = "Plugin Moodle con versioning"
+    if any('hook' in php.lower() for php in php_files):
+        plugin_type += " (usa nuovo sistema Hook)"
+    
+    # Conta template e JS modules
+    has_templates = len(mustache_files) > 0
+    has_amd_js = any('amd/' in js for js in js_files)
+    
+    f.write(f"**Tipo**: {plugin_type}\n")
+    
+    # Determina architettura chiave analizzando i file
+    architecture_points = []
+    
+    if any('hook_callbacks.php' in php for php in php_files):
+        architecture_points.append("Hook: Sistema moderno di hook per iniettare funzionalità")
+    
+    if has_templates:
+        architecture_points.append("Template: Mustache per rendering interfacce")
+    
+    if has_amd_js:
+        architecture_points.append("JavaScript: Moduli AMD/RequireJS per funzionalità client-side")
+    
+    if any('ajax.php' in php for php in php_files):
+        architecture_points.append("AJAX: Endpoint per comunicazione asincrona")
+    
+    if any('install.php' in php for php in php_files):
+        architecture_points.append("Installazione: Setup automatico database/configurazione")
+    
+    if architecture_points:
+        f.write("**Architettura chiave**:\n")
+        for point in architecture_points:
+            f.write(f"- {point}\n")
+        f.write("\n")
+    
+    # File critici
+    critical_files = []
+    for php in php_files:
+        if 'hook_callbacks.php' in php:
+            critical_files.append(f"`{php}` - Logica principale hook")
+        elif 'ajax.php' in php:
+            critical_files.append(f"`{php}` - Endpoint AJAX")
+        elif 'version.php' in php:
+            critical_files.append(f"`{php}` - Metadata plugin")
+    
+    for js in js_files:
+        if 'amd/src/' in js:
+            critical_files.append(f"`{js}` - Modulo JavaScript principale")
+    
+    for template in mustache_files:
+        critical_files.append(f"`{template}` - Template interfaccia")
+    
+    if critical_files:
+        f.write("**File critici**:\n")
+        for file_desc in critical_files:
+            f.write(f"- {file_desc}\n")
+        f.write("\n")
+
+
+def write_functional_flow(f, php_files, js_files):
+    """
+    Scrive la sezione flusso funzionale basata sull'analisi dei file.
+    """
+    f.write("# Flusso Funzionale\n\n")
+    
+    # Analizza i file per dedurre il flusso
+    has_hook = any('hook_callbacks.php' in php for php in php_files)
+    has_ajax = any('ajax.php' in php for php in php_files)
+    has_modal_js = any('modal.js' in js for js in js_files)
+    
+    if has_hook and has_ajax and has_modal_js:
+        f.write("**Flusso identificato (Modal post-login)**:\n")
+        f.write("1. **Hook rileva evento** → inietta JavaScript nell'header della pagina\n")
+        f.write("2. **JavaScript si carica** → utilizza RequireJS per caricare moduli\n")
+        f.write("3. **Modal si attiva** → mostra interfaccia all'utente\n")
+        f.write("4. **Utente interagisce** → seleziona opzioni e conferma\n")
+        f.write("5. **Salvataggio AJAX** → invia dati al server per persistenza\n")
+        f.write("6. **Controlli sessione** → previene ri-visualizzazione indesiderata\n\n")
+    else:
+        f.write("**Flusso generico identificato dalla struttura dei file**\n\n")
+
+
+def generate_folder_summary(target_directory, include_minified=False, include_debug_files=True):
     """
     Genera una rappresentazione ASCII della struttura della cartella (stile 'tree'),
-    e riporta il contenuto di README.md, file *.php e file *.js.
+    e riporta il contenuto di README.md, panoramica tecnica, file *.php, *.js e *.mustache.
     Esclude file e directory nascosti (quelli che iniziano con '.') e la directory 'bin'.
 
     Args:
         target_directory (str): Il percorso della cartella da analizzare.
+        include_minified (bool): Se includere file minificati (.min.js, .min.css).
+        include_debug_files (bool): Se includere completamente i file di debug/test.
     """
     if not os.path.isdir(target_directory):
         print(f"Errore: La cartella '{target_directory}' non esiste o non è una cartella.")
@@ -155,17 +296,24 @@ def generate_folder_summary(target_directory):
     structure_lines = []
     php_files_relative = []
     js_files_relative = []
+    mustache_files_relative = []
 
     # Aggiungi la riga radice all'inizio della struttura visuale
     structure_lines.append(f"{os.path.basename(target_directory)}/")
 
     # Avvia la generazione della struttura ad albero chiamando la funzione ricorsiva
     add_items_to_structure(target_directory, "", structure_lines, php_files_relative, 
-                          js_files_relative, target_directory)
+                          js_files_relative, mustache_files_relative, target_directory, include_minified)
 
     # Ordina i percorsi dei file raccolti
     php_files_relative.sort()
     js_files_relative.sort()
+    mustache_files_relative.sort()
+
+    # Se non includere file di debug, rimuovili dalle liste (ma tienili nel riassunto)
+    if not include_debug_files:
+        # Non rimuoverli, ma il contenuto sarà riassunto dalla funzione write_file_section
+        pass
 
     # Percorso del file di output (SUNTO.md nella directory target)
     output_path = os.path.join(target_directory, 'SUNTO.md')
@@ -182,26 +330,45 @@ def generate_folder_summary(target_directory):
             # --- Sezione README.md ---
             write_readme_section(f, target_directory)
             
+            # --- Sezione Panoramica Tecnica ---
+            write_technical_overview(f, php_files_relative, js_files_relative, mustache_files_relative, target_directory)
+            
+            # --- Sezione Flusso Funzionale ---
+            write_functional_flow(f, php_files_relative, js_files_relative)
+            
             # --- Sezione File PHP ---
             write_file_section(f, "File PHP", php_files_relative, target_directory, "php")
             
             # --- Sezione File JavaScript ---
             write_file_section(f, "File JavaScript", js_files_relative, target_directory, "javascript")
+            
+            # --- Sezione Template (se presenti) ---
+            if mustache_files_relative:
+                write_file_section(f, "Template Mustache", mustache_files_relative, target_directory, "handlebars")
 
-        total_files = len(php_files_relative) + len(js_files_relative)
+        total_files = len(php_files_relative) + len(js_files_relative) + len(mustache_files_relative)
         readme_exists = os.path.isfile(os.path.join(target_directory, 'README.md'))
         
         print(f"Report generato con successo: '{output_path}' (elementi nascosti e directory 'bin' esclusi).")
         print(f"README.md: {'trovato' if readme_exists else 'non trovato'}")
-        print(f"File processati: {len(php_files_relative)} PHP, {len(js_files_relative)} JS (totale: {total_files})")
+        print(f"File processati: {len(php_files_relative)} PHP, {len(js_files_relative)} JS, {len(mustache_files_relative)} Mustache (totale: {total_files})")
+        if not include_minified:
+            print("File minificati esclusi dal report.")
 
     except IOError as e:
         print(f"Errore durante la scrittura del file '{output_path}': {e}")
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Utilizzo: python nome_script.py <percorso_cartella>")
-        print("Esempio: python genera_sunto.py ./local_test")
+    if len(sys.argv) < 2:
+        print("Utilizzo: python sunto.py <percorso_cartella> [--include-minified] [--no-debug-files]")
+        print("Esempio: python sunto.py ./local_test")
+        print("Opzioni:")
+        print("  --include-minified    Includi file .min.js/.min.css")
+        print("  --no-debug-files     Riassumi invece di mostrare file debug/test completi")
     else:
         target_dir = sys.argv[1]
-        generate_folder_summary(target_dir)
+        include_minified = '--include-minified' in sys.argv
+        include_debug_files = '--no-debug-files' not in sys.argv
+        
+        generate_folder_summary(target_dir, include_minified, include_debug_files)
+        
