@@ -1,7 +1,4 @@
-// ============================================================================
-// FILE: README.md
-// ============================================================================
-# WhereAreYou2 - Moodle Plugin
+# WhereAreYou - Moodle Plugin
 
 Un plugin moderno per Moodle 5+ che mostra una modal post-login per permettere agli utenti di specificare il proprio dipartimento e posizione.
 
