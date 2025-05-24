@@ -46,6 +46,22 @@ class hook_callbacks {
             return;
         }
         
+        // IMPORTANTE: Mostra la modale solo se i dati non sono ancora impostati
+        if (!empty($department) && !empty($position)) {
+            // Entrambi i campi sono già impostati, non mostrare la modale
+            return;
+        }
+        
+        // Verifica se è la prima volta che l'utente accede oggi
+        $last_shown = get_user_preferences('local_whereareyou_last_shown', 0, $USER->id);
+        $today = date('Y-m-d');
+        $last_shown_date = date('Y-m-d', $last_shown);
+        
+        // Se è già stata mostrata oggi e i dati sono parzialmente impostati, non mostrarla di nuovo
+        if ($last_shown_date === $today && (!empty($department) || !empty($position))) {
+            return;
+        }
+        
         // Prepare template context
         $templatecontext = [
             'department_options' => $department_options,
@@ -56,39 +72,77 @@ class hook_callbacks {
             'wwwroot' => $CFG->wwwroot,
         ];
         
-        // Simple approach: Add script directly to head
+        // Migliore approccio: Add script direttamente to head con gestione errori
         $js_config = json_encode($templatecontext);
         $script = "
         <script>
-        console.log('WhereAreYou: Hook called for user {$USER->id}');
+        console.log('WhereAreYou: Hook chiamato per utente {$USER->id}');
+        console.log('WhereAreYou: Dipartimento corrente: {$department}');
+        console.log('WhereAreYou: Posizione corrente: {$position}');
         
         // Store config globally
         window.whereAreYouConfig = {$js_config};
         
+        // Flag per evitare inizializzazioni multiple
+        window.whereAreYouInitialized = false;
+        
         // Function to initialize modal
         function initWhereAreYouModal() {
+            if (window.whereAreYouInitialized) {
+                console.log('WhereAreYou: Già inizializzato, saltando...');
+                return;
+            }
+            
             if (typeof require !== 'undefined') {
-                console.log('WhereAreYou: Loading modal module');
+                console.log('WhereAreYou: Caricamento modulo modale...');
                 require(['local_whereareyou/modal'], function(modal) {
-                    console.log('WhereAreYou: Modal module loaded');
-                    modal.init(window.whereAreYouConfig);
+                    console.log('WhereAreYou: Modulo modale caricato con successo');
+                    try {
+                        modal.init(window.whereAreYouConfig);
+                        window.whereAreYouInitialized = true;
+                        
+                        // Aggiorna timestamp dell'ultima visualizzazione
+                        var xhr = new XMLHttpRequest();
+                        xhr.open('POST', '{$CFG->wwwroot}/local/whereareyou/ajax.php', true);
+                        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                        xhr.send('action=update_last_shown&sesskey=' + encodeURIComponent('{$sesskey}'));
+                        
+                    } catch (error) {
+                        console.error('WhereAreYou: Errore nell\\'inizializzazione della modale:', error);
+                    }
                 }, function(error) {
-                    console.error('WhereAreYou: Failed to load modal', error);
+                    console.error('WhereAreYou: Fallito caricamento modale', error);
+                    // Riprova dopo un po'
+                    setTimeout(function() {
+                        console.log('WhereAreYou: Nuovo tentativo di caricamento...');
+                        window.whereAreYouInitialized = false;
+                        initWhereAreYouModal();
+                    }, 2000);
                 });
             } else {
-                console.log('WhereAreYou: RequireJS not ready, retrying...');
-                setTimeout(initWhereAreYouModal, 500);
+                console.log('WhereAreYou: RequireJS non pronto, riprovo tra 1 secondo...');
+                setTimeout(initWhereAreYouModal, 1000);
             }
         }
         
-        // Initialize when page loads
+        // Inizializza quando la pagina è caricata
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', function() {
-                setTimeout(initWhereAreYouModal, 100);
+                console.log('WhereAreYou: DOM caricato, inizializzazione in 500ms...');
+                setTimeout(initWhereAreYouModal, 500);
             });
         } else {
-            setTimeout(initWhereAreYouModal, 100);
+            console.log('WhereAreYou: DOM già caricato, inizializzazione in 1 secondo...');
+            setTimeout(initWhereAreYouModal, 1000);
         }
+        
+        // Fallback: inizializza anche quando la window è completamente caricata
+        window.addEventListener('load', function() {
+            if (!window.whereAreYouInitialized) {
+                console.log('WhereAreYou: Window caricata, ultimo tentativo di inizializzazione...');
+                setTimeout(initWhereAreYouModal, 500);
+            }
+        });
         </script>
         ";
         
@@ -170,4 +224,3 @@ class hook_callbacks {
         return $result;
     }
 }
-

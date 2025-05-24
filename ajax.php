@@ -53,7 +53,12 @@ if ($action === 'save') {
     set_user_preference('local_whereareyou_position', $position);
     
     echo json_encode(['success' => $success]);
+    
+} elseif ($action === 'update_last_shown') {
+    // Aggiorna il timestamp dell'ultima visualizzazione della modale
+    set_user_preference('local_whereareyou_last_shown', time());
+    echo json_encode(['success' => true]);
+    
 } else {
     echo json_encode(['success' => false, 'error' => 'Invalid action']);
 }
-
