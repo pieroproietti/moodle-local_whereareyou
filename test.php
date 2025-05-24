@@ -203,10 +203,32 @@ document.addEventListener('DOMContentLoaded', function() {
     const showModalBtn = document.getElementById('show-modal-btn');
     
     showModalBtn.addEventListener('click', function() {
+        // Show loading state
+        const originalText = showModalBtn.innerHTML;
+        showModalBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-2"></i>Caricamento...';
+        showModalBtn.disabled = true;
+        
         // Import and initialize modal
         require(['local_whereareyou/modal'], function(modal) {
-            const config = <?php echo json_encode($templatecontext); ?>;
-            modal.init(config);
+            try {
+                const config = <?php echo json_encode($templatecontext); ?>;
+                modal.init(config);
+            } catch (error) {
+                console.error('Error initializing modal:', error);
+                alert('Errore nel caricare la modale. Controlla la console per dettagli.');
+            } finally {
+                // Restore button state
+                showModalBtn.innerHTML = originalText;
+                showModalBtn.disabled = false;
+            }
+        }, function(error) {
+            // RequireJS error callback
+            console.error('RequireJS error:', error);
+            alert('Errore nel caricare il modulo JavaScript. Assicurati che il plugin sia installato correttamente.');
+            
+            // Restore button state
+            showModalBtn.innerHTML = originalText;
+            showModalBtn.disabled = false;
         });
     });
 });
