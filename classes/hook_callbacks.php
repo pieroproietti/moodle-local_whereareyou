@@ -1,5 +1,4 @@
 <?php
-
 namespace local_whereareyou;
 
 use core\hook\output\before_standard_head_html_generation;
@@ -17,7 +16,7 @@ class hook_callbacks {
      * @param before_standard_head_html_generation $hook
      */
     public static function before_standard_head_html_generation(before_standard_head_html_generation $hook): void {
-        global $USER, $PAGE, $OUTPUT;
+        global $USER, $PAGE, $CFG;
         
         // Only show modal for logged in users, not on login page
         if (!isloggedin() || isguestuser() || $PAGE->pagelayout === 'login') {
@@ -29,9 +28,10 @@ class hook_callbacks {
             return;
         }
         
-        // Always show the modal (as requested)
-        $context = \context_system::instance();
-        $renderer = $PAGE->get_renderer('local_whereareyou');
+        // Skip for admin pages - but allow test page
+        if ($PAGE->pagelayout === 'admin' && strpos($PAGE->url->get_path(), '/local/whereareyou/test.php') === false) {
+            return;
+        }
         
         // Get current values
         $department = self::get_user_department($USER->id);
@@ -41,6 +41,11 @@ class hook_callbacks {
         $department_options = self::get_department_options();
         $position_options = self::get_position_options();
         
+        // Only proceed if we have options configured
+        if (empty($department_options) || empty($position_options)) {
+            return;
+        }
+        
         // Prepare template context
         $templatecontext = [
             'department_options' => $department_options,
@@ -48,11 +53,47 @@ class hook_callbacks {
             'current_department' => $department,
             'current_position' => $position,
             'sesskey' => sesskey(),
-            'wwwroot' => $CFG->wwwroot ?? '',
+            'wwwroot' => $CFG->wwwroot,
         ];
         
-        // Add JavaScript module
-        $PAGE->requires->js_call_amd('local_whereareyou/modal', 'init', [$templatecontext]);
+        // Simple approach: Add script directly to head
+        $js_config = json_encode($templatecontext);
+        $script = "
+        <script>
+        console.log('WhereAreYou: Hook called for user {$USER->id}');
+        
+        // Store config globally
+        window.whereAreYouConfig = {$js_config};
+        
+        // Function to initialize modal
+        function initWhereAreYouModal() {
+            if (typeof require !== 'undefined') {
+                console.log('WhereAreYou: Loading modal module');
+                require(['local_whereareyou/modal'], function(modal) {
+                    console.log('WhereAreYou: Modal module loaded');
+                    modal.init(window.whereAreYouConfig);
+                }, function(error) {
+                    console.error('WhereAreYou: Failed to load modal', error);
+                });
+            } else {
+                console.log('WhereAreYou: RequireJS not ready, retrying...');
+                setTimeout(initWhereAreYouModal, 500);
+            }
+        }
+        
+        // Initialize when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                setTimeout(initWhereAreYouModal, 100);
+            });
+        } else {
+            setTimeout(initWhereAreYouModal, 100);
+        }
+        </script>
+        ";
+        
+        // Add to head
+        $hook->add_html($script);
     }
     
     /**
@@ -129,3 +170,4 @@ class hook_callbacks {
         return $result;
     }
 }
+
