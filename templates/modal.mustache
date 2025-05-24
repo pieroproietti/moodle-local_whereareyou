@@ -1,0 +1,46 @@
+<div id="whereareyou-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="whereareyou-modal-title" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="whereareyou-modal-title">{{title}}</h5>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">{{description}}</p>
+                <form id="whereareyou-form">
+                    <input type="hidden" name="sesskey" value="{{sesskey}}">
+                    <input type="hidden" name="userid" value="{{userid}}">
+                    
+                    <div class="mb-3">
+                        <label for="department-select" class="form-label">{{department_label}} <span class="text-danger">*</span></label>
+                        <select class="form-select" id="department-select" name="department" required>
+                            <option value="">-- {{select_department}} --</option>
+                            {{#departments}}
+                            <option value="{{value}}" {{#selected}}selected{{/selected}}>{{text}}</option>
+                            {{/departments}}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="position-select" class="form-label">{{position_label}} <span class="text-danger">*</span></label>
+                        <select class="form-select" id="position-select" name="position" required>
+                            <option value="">-- {{select_position}} --</option>
+                            {{#positions}}
+                            <option value="{{value}}" {{#selected}}selected{{/selected}}>{{text}}</option>
+                            {{/positions}}
+                        </select>
+                    </div>
+                    
+                    <div class="alert alert-danger d-none" id="error-message" role="alert"></div>
+                    <div class="alert alert-success d-none" id="success-message" role="alert"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="skip-whereareyou">{{skip_button}}</button>
+                <button type="button" class="btn btn-primary" id="save-whereareyou">
+                    <span class="btn-text">{{save_button}}</span>
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
