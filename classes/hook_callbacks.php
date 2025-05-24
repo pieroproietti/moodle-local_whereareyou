@@ -29,9 +29,11 @@ class hook_callbacks {
         }
         
         // Skip for admin pages - but allow test page
-        if ($PAGE->pagelayout === 'admin' && strpos($PAGE->url->get_path(), '/local/whereareyou/test.php') === false) {
+        if ($PAGE->pagelayout === 'admin' && 
+            strpos($PAGE->url->get_path(), '/local/whereareyou/test.php') === false && 
+            strpos($PAGE->url->get_path(), '/local/whereareyou/debug.php') === false) {
             return;
-        }
+        }        
         
         // Get current values
         $department = self::get_user_department($USER->id);
@@ -46,21 +48,24 @@ class hook_callbacks {
             return;
         }
         
-        // IMPORTANTE: Mostra la modale solo se i dati non sono ancora impostati
-        if (!empty($department) && !empty($position)) {
-            // Entrambi i campi sono già impostati, non mostrare la modale
+        // Verifica se è già stata mostrata in questa sessione
+        $session_key = 'local_whereareyou_shown_' . session_id();
+        $last_shown = get_user_preferences('local_whereareyou_last_shown', 0, $USER->id);
+        $session_shown = get_user_preferences($session_key, 0, $USER->id);
+        
+        // Se è già stata mostrata in questa sessione, non mostrarla di nuovo
+        if ($session_shown) {
             return;
         }
         
-        // Verifica se è la prima volta che l'utente accede oggi
-        $last_shown = get_user_preferences('local_whereareyou_last_shown', 0, $USER->id);
+        // Opzionale: mostra solo una volta al giorno (rimuovi questo blocco se vuoi che appaia ad ogni login)
         $today = date('Y-m-d');
         $last_shown_date = date('Y-m-d', $last_shown);
         
-        // Se è già stata mostrata oggi e i dati sono parzialmente impostati, non mostrarla di nuovo
-        if ($last_shown_date === $today && (!empty($department) || !empty($position))) {
-            return;
-        }
+        // Se è già stata mostrata oggi, non mostrarla di nuovo (commenta queste righe per mostrarla ad ogni login)
+        // if ($last_shown_date === $today) {
+        //     return;
+        // }
         
         // Prepare template context
         $templatecontext = [
@@ -101,7 +106,7 @@ class hook_callbacks {
                         modal.init(window.whereAreYouConfig);
                         window.whereAreYouInitialized = true;
                         
-                        // Aggiorna timestamp dell'ultima visualizzazione
+                        // Aggiorna timestamp dell'ultima visualizzazione e segna come mostrata in questa sessione
                         var xhr = new XMLHttpRequest();
                         xhr.open('POST', '{$CFG->wwwroot}/local/whereareyou/ajax.php', true);
                         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
@@ -191,7 +196,22 @@ class hook_callbacks {
             return [];
         }
         
-        $options = explode("\n", $field->param1);
+        // Gestisce sia newline che spazi come separatori
+        $raw_options = $field->param1;
+        
+        // Prima prova con newline
+        if (strpos($raw_options, "\n") !== false) {
+            $options = explode("\n", $raw_options);
+        } 
+        // Se non ci sono newline, prova con gli spazi
+        else if (strpos($raw_options, " ") !== false) {
+            $options = explode(" ", $raw_options);
+        }
+        // Altrimenti è un singolo valore
+        else {
+            $options = [$raw_options];
+        }
+        
         $result = [];
         foreach ($options as $option) {
             $option = trim($option);
@@ -213,7 +233,22 @@ class hook_callbacks {
             return [];
         }
         
-        $options = explode("\n", $field->param1);
+        // Gestisce sia newline che spazi come separatori
+        $raw_options = $field->param1;
+        
+        // Prima prova con newline
+        if (strpos($raw_options, "\n") !== false) {
+            $options = explode("\n", $raw_options);
+        } 
+        // Se non ci sono newline, prova con gli spazi
+        else if (strpos($raw_options, " ") !== false) {
+            $options = explode(" ", $raw_options);
+        }
+        // Altrimenti è un singolo valore
+        else {
+            $options = [$raw_options];
+        }
+        
         $result = [];
         foreach ($options as $option) {
             $option = trim($option);

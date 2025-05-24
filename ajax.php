@@ -57,7 +57,29 @@ if ($action === 'save') {
 } elseif ($action === 'update_last_shown') {
     // Aggiorna il timestamp dell'ultima visualizzazione della modale
     set_user_preference('local_whereareyou_last_shown', time());
+    
+    // Segna come mostrata in questa sessione
+    $session_key = 'local_whereareyou_shown_' . session_id();
+    set_user_preference($session_key, time());
+    
     echo json_encode(['success' => true]);
+    
+} elseif ($action === 'check_preferences') {
+    // Controlla le preferenze attuali
+    $session_key = 'local_whereareyou_shown_' . session_id();
+    $session_shown = get_user_preferences($session_key, 0, $USER->id);
+    $last_shown = get_user_preferences('local_whereareyou_last_shown', 0, $USER->id);
+    
+    echo json_encode([
+        'success' => true,
+        'session_key' => $session_key,
+        'session_shown' => $session_shown,
+        'session_shown_date' => $session_shown ? date('Y-m-d H:i:s', $session_shown) : 'Mai',
+        'last_shown' => $last_shown,
+        'last_shown_date' => $last_shown ? date('Y-m-d H:i:s', $last_shown) : 'Mai',
+        'session_id' => session_id(),
+        'user_id' => $USER->id
+    ]);
     
 } else {
     echo json_encode(['success' => false, 'error' => 'Invalid action']);
