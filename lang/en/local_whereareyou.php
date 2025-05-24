@@ -1,16 +1,19 @@
 <?php
 defined('MOODLE_INTERNAL') || die();
 
-$string['pluginname'] = 'Where Are You';
-$string['modal_title'] = 'Where are you?';
-$string['modal_description'] = 'Please specify your department and position to complete your profile.';
-$string['department'] = 'Department';
-$string['position'] = 'Position';
-$string['save'] = 'Save';
-$string['close'] = 'Close';
-$string['skip'] = 'Skip for now';
-$string['required_fields'] = 'Please fill in all required fields.';
-$string['save_success'] = 'Your information has been saved successfully.';
-$string['save_error'] = 'An error occurred while saving your information.';
-$string['select_department'] = 'Select Department';
-$string['select_position'] = 'Select Position';
+$string['pluginname'] = 'Where Are You 2';
+$string['privacy:metadata'] = 'The Where Are You plugin stores user department and position information.';
+
+// Modal strings
+$string['modal_title'] = 'Dove Sei Tu?';
+$string['modal_subtitle'] = 'Aggiorna la tua posizione e dipartimento';
+$string['department_label'] = 'Dipartimento:';
+$string['position_label'] = 'Posizione:';
+$string['save_button'] = 'Salva';
+$string['logout_button'] = 'Logout';
+$string['select_department'] = 'Seleziona dipartimento...';
+$string['select_position'] = 'Seleziona posizione...';
+
+// Messages
+$string['save_success'] = 'Informazioni salvate con successo!';
+$string['save_error'] = 'Errore nel salvare le informazioni.';

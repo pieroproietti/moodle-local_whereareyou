@@ -1,44 +1,66 @@
+{{!
+    @template local_whereareyou/modal
+
+    Where Are You modal template.
+
+    Context variables required for this template:
+    * department_options - Array of department options
+    * position_options - Array of position options
+    * current_department - Current user department
+    * current_position - Current user position
+    * sesskey - Session key
+    * wwwroot - Site root URL
+}}
 <div id="whereareyou-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="whereareyou-modal-title" aria-hidden="true" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="whereareyou-modal-title">{{title}}</h5>
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="whereareyou-modal-title">
+                    <i class="fa fa-map-marker-alt me-2"></i>
+                    {{#str}}modal_title, local_whereareyou{{/str}}
+                </h5>
             </div>
             <div class="modal-body">
-                <p class="mb-3">{{description}}</p>
+                <p class="text-muted mb-4">{{#str}}modal_subtitle, local_whereareyou{{/str}}</p>
+                
                 <form id="whereareyou-form">
                     <input type="hidden" name="sesskey" value="{{sesskey}}">
-                    <input type="hidden" name="userid" value="{{userid}}">
                     
                     <div class="mb-3">
-                        <label for="department-select" class="form-label">{{department_label}} <span class="text-danger">*</span></label>
-                        <select class="form-select" id="department-select" name="department" required>
-                            <option value="">-- {{select_department}} --</option>
-                            {{#departments}}
-                            <option value="{{value}}" {{#selected}}selected{{/selected}}>{{text}}</option>
-                            {{/departments}}
+                        <label for="department-select" class="form-label fw-bold">
+                            {{#str}}department_label, local_whereareyou{{/str}}
+                        </label>
+                        <select id="department-select" name="department" class="form-select" required>
+                            <option value="">{{#str}}select_department, local_whereareyou{{/str}}</option>
+                            {{#department_options}}
+                                <option value="{{value}}" {{#selected}}selected{{/selected}}>{{text}}</option>
+                            {{/department_options}}
                         </select>
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="position-select" class="form-label">{{position_label}} <span class="text-danger">*</span></label>
-                        <select class="form-select" id="position-select" name="position" required>
-                            <option value="">-- {{select_position}} --</option>
-                            {{#positions}}
-                            <option value="{{value}}" {{#selected}}selected{{/selected}}>{{text}}</option>
-                            {{/positions}}
+                    <div class="mb-4">
+                        <label for="position-select" class="form-label fw-bold">
+                            {{#str}}position_label, local_whereareyou{{/str}}
+                        </label>
+                        <select id="position-select" name="position" class="form-select" required>
+                            <option value="">{{#str}}select_position, local_whereareyou{{/str}}</option>
+                            {{#position_options}}
+                                <option value="{{value}}" {{#selected}}selected{{/selected}}>{{text}}</option>
+                            {{/position_options}}
                         </select>
                     </div>
                     
-                    <div class="alert alert-danger d-none" id="error-message" role="alert"></div>
-                    <div class="alert alert-success d-none" id="success-message" role="alert"></div>
+                    <div class="alert alert-info d-none" id="whereareyou-message"></div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" id="skip-whereareyou">{{skip_button}}</button>
-                <button type="button" class="btn btn-primary" id="save-whereareyou">
-                    <span class="btn-text">{{save_button}}</span>
-                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                <button type="button" class="btn btn-secondary" id="whereareyou-logout">
+                    <i class="fa fa-sign-out-alt me-2"></i>
+                    {{#str}}logout_button, local_whereareyou{{/str}}
+                </button>
+                <button type="button" class="btn btn-primary" id="whereareyou-save">
+                    <i class="fa fa-save me-2"></i>
+                    {{#str}}save_button, local_whereareyou{{/str}}
                 </button>
             </div>
         </div>
