@@ -1,0 +1,35 @@
+#!/bin/bash
+# Creo SUNTO.md
+./bin/sunto.py .
+
+# Genera una UUID di 8 caratteri
+UUID=$(uuidgen | tr -d '-' | head -c 8)
+# echo "UUID generata: $UUID"
+
+# Cancella i file SUNTO* sul server remoto
+echo "Cancellazione file SUNTO* sul server remoto..."
+ssh artisan@192.168.1.2 "rm -f /home/artisan/SUNTO*"
+
+if [ $? -eq 0 ]; then
+    echo "File SUNTO* cancellati con successo"
+else
+    echo "Errore nella cancellazione dei file remoti"
+    exit 1
+fi
+
+# Controlla se il file SUNTO.md esiste localmente
+if [ ! -f "SUNTO.md" ]; then
+    echo "Errore: il file SUNTO.md non esiste nella directory corrente"
+    exit 1
+fi
+
+# Copia il file SUNTO.md sul server remoto con il nuovo nome
+echo "Copiando SUNTO.md come SUNTO-$UUID.md..."
+scp SUNTO.md artisan@192.168.1.2:/home/artisan/SUNTO-$UUID.md
+
+if [ $? -eq 0 ]; then
+    echo "File copiato con successo come SUNTO-$UUID.md"
+else
+    echo "Errore nella copia del file"
+    exit 1
+fi
