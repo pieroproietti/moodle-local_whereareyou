@@ -1,3 +1,6 @@
+// ============================================================================
+// FILE: lang/it/local_whereareyou.php
+// ============================================================================
 <?php
 defined('MOODLE_INTERNAL') || die();
 
@@ -17,3 +20,4 @@ $string['select_position'] = 'Seleziona posizione...';
 // Messages
 $string['save_success'] = 'Informazioni salvate con successo!';
 $string['save_error'] = 'Errore nel salvare le informazioni.';
+

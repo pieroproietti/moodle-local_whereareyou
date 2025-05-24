@@ -1,3 +1,6 @@
+// ============================================================================
+// FILE: ajax.php
+// ============================================================================
 <?php
 define('AJAX_SCRIPT', true);
 require_once('../../config.php');
@@ -56,3 +59,4 @@ if ($action === 'save') {
 } else {
     echo json_encode(['success' => false, 'error' => 'Invalid action']);
 }
+

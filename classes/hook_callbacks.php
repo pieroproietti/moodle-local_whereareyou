@@ -1,4 +1,8 @@
 <?php
+// ============================================================================
+// FILE: classes/hook_callbacks.php
+// ============================================================================
+
 namespace local_whereareyou;
 
 use core\hook\output\before_standard_head_html_generation;
@@ -128,4 +132,3 @@ class hook_callbacks {
         return $result;
     }
 }
-

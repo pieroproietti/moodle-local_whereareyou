@@ -1,3 +1,6 @@
+// ============================================================================
+// FILE: README.md
+// ============================================================================
 # WhereAreYou2 - Moodle Plugin
 
 Un plugin moderno per Moodle 5+ che mostra una modal post-login per permettere agli utenti di specificare il proprio dipartimento e posizione.
@@ -11,6 +14,7 @@ Un plugin moderno per Moodle 5+ che mostra una modal post-login per permettere a
 - ✅ Utilizza il nuovo sistema di hook (niente callback legacy)
 - ✅ Design moderno e responsive
 - ✅ Supporto multilingua (IT/EN)
+- ✅ **Pagina di test per amministratori**
 
 ## Installazione
 
@@ -31,6 +35,20 @@ Il plugin creerà automaticamente:
 - Due pulsanti disponibili: "Salva" e "Logout"
 - I dati vengono salvati nei campi personalizzati del profilo
 - La modal è sempre visibile (anche se i campi sono già compilati)
+
+## Testing
+
+Per testare la funzionalità senza dover fare login/logout ripetutamente:
+
+1. Vai in **Site administration > Local plugins > WhereAreYou Test Page**
+2. Clicca **"Show Modal"** per visualizzare la modale
+3. Testa il salvataggio dei dati
+4. Usa **"Reset My Data"** per pulire i valori e ritestare
+
+La pagina di test mostra anche:
+- Valori correnti di dipartimento e posizione
+- Opzioni disponibili per entrambi i campi
+- Istruzioni dettagliate per il testing
 
 ## Requisiti
 
