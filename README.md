@@ -110,11 +110,11 @@ sequenceDiagram
 
 * La customizzazione dei campi `department` e `position` dell'esempio può essere customizzata su [db/install.php](./db/install.php).
 
-* E' presente lo script [bin/install-whereareyou.sh](./bin/install-whereareyou.sh)che avvia l'installazione del plugin stesso sulla ISO live [moodledev](https://github.com/pieroproietti/moodledev).
+* E' presente lo script [bin/install-whereareyou.sh](./bin/install-whereareyou.sh) che avvia l'installazione del plugin stesso sulla ISO live [moodledev](https://github.com/pieroproietti/moodledev).
 
 * Nella creazione di questo codice ci si è avvalsi **pesantemente** della AI, in particolare di [Claude](https://claude.ai/new), [Gemini](https://gemini.google.com/), ma preziose informazioni sono venute anche da [deepseek](https://chat.deepseek.com/) ed altri. Per fornire un contesto, si raccomanda di usare lo script python presente in `bin/sunto.py`, che fornisce all'AI una documentazione strutturata di tutti i file: `php`, `js`, `mustache` presenti.
 
-* Pur avendo scritto il plugin, manca - non sono riuscito a trovarla - una [documentazione esaustiva](https://moodledev.io/general/development/gettingstarted) di come si scrivano i plugin per moodle, sembra un processo fluido più che solido ma, forse a questo, ci dovremo abituare.
+* Pur avendo scritto il plugin, manca - non sono riuscito a trovarla - una [documentazione esaustiva](https://moodledev.io/general/development/gettingstarted) di come si scrivano i plugin per moodle in questa fase. Sembra quasi un processo fluido più che solido ma, forse a questo, ci dovremo abituare.
 
 
 
