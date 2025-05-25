@@ -71,3 +71,7 @@ Per problemi o domande, consulta la documentazione di Moodle o contatta l'ammini
 4. **Utente interagisce** → seleziona opzioni e conferma
 5. **Salvataggio AJAX** → invia dati al server per persistenza
 6. **Controlli sessione** → previene ri-visualizzazione indesiderata
+
+## NOTE
+Il web service in realtà FUNZIONA - l'ho visto nei log: "WhereAreYou WebService: User 2 saved". Il JavaScript usa PRIMA il web service, poi fallback su AJAX.
+È più professionale e segue le linee guida Moodle Non pesa sul plugin (i file sono già scritti).
