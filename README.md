@@ -112,7 +112,7 @@ sequenceDiagram
 
 * Nella creazione di questo codice ci si è avvalsi **pesantemente** della AI, in particolare di [Claude](https://claude.ai/new), [Gemini](https://gemini.google.com/), ma preziose informazioni sono venute anche da [deepseek](https://chat.deepseek.com/) ed altri. Per fornire un contesto, si raccomanda di usare lo script python presente in `bin/sunto.py`, che fornisce all'AI una documentazione strutturata di tutti i file: `php`, `js`, `mustache` presenti.
 
-* Pur avendo scritto il plugin, manca - non sono riuscito a trovarla - una [documentazione esaustiva](https://moodledev.io/general/development/gettingstarted) di come si scrivano i plugin per moodle, sembra un processo fluido più che solido e forse a questo ci dovremo abituare.
+* Pur avendo scritto il plugin, manca - non sono riuscito a trovarla - una [documentazione esaustiva](https://moodledev.io/general/development/gettingstarted) di come si scrivano i plugin per moodle, sembra un processo fluido più che solido ma, forse a questo, ci dovremo abituare.
 
 
 
