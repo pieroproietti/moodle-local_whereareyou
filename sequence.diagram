@@ -1,0 +1,23 @@
+sequenceDiagram
+    participant User
+    participant Browser
+    participant Moodle
+    participant Database
+    
+    User->>Browser: Esegue login
+    Browser->>Moodle: Richiesta pagina post-login
+    Moodle->>Browser: Pagina con hook JavaScript
+    Browser->>Moodle: Carica modulo AMD
+    Moodle->>Browser: Modal.js e template
+    Browser->>User: Mostra modal
+    User->>Browser: Seleziona valori e conferma
+    Browser->>Moodle: Chiamata Web Service (primaria)
+    alt Web Service disponibile
+        Moodle->>Database: Salva campi personalizzati
+        Moodle->>Browser: Conferma salvataggio
+    else Fallback AJAX
+        Browser->>Moodle: Chiamata AJAX
+        Moodle->>Database: Salva campi personalizzati
+        Moodle->>Browser: Conferma salvataggio
+    end
+    Browser->>User: Chiude modal/feedback

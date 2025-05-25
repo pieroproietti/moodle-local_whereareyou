@@ -34,6 +34,32 @@ Il plugin creerà automaticamente:
 - I dati vengono salvati nei campi personalizzati del profilo
 - La modal è sempre visibile (anche se i campi sono già compilati)
 
+```mermaid
+sequenceDiagram
+    participant User
+    participant Browser
+    participant Moodle
+    participant Database
+    
+    User->>Browser: Esegue login
+    Browser->>Moodle: Richiesta pagina post-login
+    Moodle->>Browser: Pagina con hook JavaScript
+    Browser->>Moodle: Carica modulo AMD
+    Moodle->>Browser: Modal.js e template
+    Browser->>User: Mostra modal
+    User->>Browser: Seleziona valori e conferma
+    Browser->>Moodle: Chiamata Web Service (primaria)
+    alt Web Service disponibile
+        Moodle->>Database: Salva campi personalizzati
+        Moodle->>Browser: Conferma salvataggio
+    else Fallback AJAX
+        Browser->>Moodle: Chiamata AJAX
+        Moodle->>Database: Salva campi personalizzati
+        Moodle->>Browser: Conferma salvataggio
+    end
+    Browser->>User: Chiude modal/feedback
+```
+
 ## Requisiti
 
 - Moodle 5.0+
@@ -73,5 +99,6 @@ Per problemi o domande, consulta la documentazione di Moodle o contatta l'ammini
 6. **Controlli sessione** → previene ri-visualizzazione indesiderata
 
 ## NOTE
-Il web service in realtà FUNZIONA - l'ho visto nei log: "WhereAreYou WebService: User 2 saved". Il JavaScript usa PRIMA il web service, poi fallback su AJAX.
-È più professionale e segue le linee guida Moodle Non pesa sul plugin (i file sono già scritti).
+Il web service in realtà FUNZIONA - ma Il JavaScript usa PRIMA il web service, quindi fa il fallback su AJAX. Questo metodo è più professionale e segue le linee guida Moodle.
+
+Si consiglia, pertanto di lasciarlo così com'è.
