@@ -1,6 +1,6 @@
 # WhereAreYou - Moodle Plugin
 
-Un plugin moderno per Moodle 5+ che mostra una modal post-login per permettere agli utenti di specificare il proprio dipartimento e posizione.
+Un plugin moderno per Moodle 5+ che mostra una finestra modale post-login per forzare gli utenti ad aggiornare il proprio dipartimento e la posizione.
 
 ## Caratteristiche
 
@@ -19,7 +19,6 @@ Un plugin moderno per Moodle 5+ che mostra una modal post-login per permettere a
 2. Accedi come amministratore
 3. Vai in Site administration > Notifications
 4. Completa l'installazione
-5. **IMPORTANTE**: Vai in Site administration > Development > Purge caches per compilare i moduli JavaScript
 
 Il plugin creerà automaticamente:
 - Categoria "Dove Sei Tu" nei campi profilo
@@ -28,11 +27,11 @@ Il plugin creerà automaticamente:
 
 ## Funzionamento
 
-- La modal appare automaticamente dopo ogni login
+- La finestra modale appare automaticamente dopo ogni login
 - L'utente deve selezionare dipartimento e posizione
 - Due pulsanti disponibili: "Salva" e "Logout"
 - I dati vengono salvati nei campi personalizzati del profilo
-- La modal è sempre visibile (anche se i campi sono già compilati)
+- La finestra modale viene SEMPRE attivata (anche se i campi sono già compilati)
 
 ## Requisiti
 
@@ -114,7 +113,7 @@ sequenceDiagram
 
 * Nella creazione di questo codice ci si è avvalsi **pesantemente** della AI, in particolare di [Claude](https://claude.ai/new) e [Gemini](https://gemini.google.com/), ma preziose informazioni sono venute anche da [deepseek](https://chat.Deepseek.com/), [ChatGPT](https://chatgpt.com/) ed altri. Per fornire un contesto, si raccomanda di usare lo script python presente in [bin/sunto.py](./bin/sunto.py), che fornisce all'AI una documentazione strutturata di tutti i file: `php`, `js`, `mustache` presenti.
 
-* Pur avendo scritto il plugin, manca - non sono riuscito a trovarla - una [documentazione esaustiva](https://moodledev.io/general/development/gettingstarted) di come si scrivano i plugin per moodle in questa fase. Sembra quasi un processo fluido più che solido ma, forse a questo, ci dovremo abituare.
+* Pur avendo scritto il plugin, mi manca - non sono riuscito a trovarla - una [documentazione esaustiva](https://moodledev.io/general/development/gettingstarted) su come scrivere i plugin per moodle in questa particolare fase (maggio 2025). Sembra più un processo fluido più che solido ma, probabilmente anche a questo, ci dovremo abituare.
 
 
 
