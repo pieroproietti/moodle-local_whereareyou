@@ -4,68 +4,43 @@ defined('MOODLE_INTERNAL') || die();
 function xmldb_local_whereareyou_install() {
     global $DB;
     
-    // Get or create default category for profile fields
-    $category = $DB->get_record('user_info_category', ['name' => 'Dove Sei Tu']);
-    if (!$category) {
-        $category = new stdClass();
-        $category->name = 'Dove Sei Tu';
-        $category->sortorder = 1;
-        $categoryid = $DB->insert_record('user_info_category', $category);
-    } else {
-        $categoryid = $category->id;
-    }
+    // Crea categoria per i campi personalizzati
+    $category = new stdClass();
+    $category->name = get_string('pluginname', 'local_whereareyou');
+    $category->sortorder = $DB->count_records('user_info_category') + 1;
+    $categoryid = $DB->insert_record('user_info_category', $category);
     
-    // Create custom profile field for Department
-    if (!$DB->record_exists('user_info_field', ['shortname' => 'department'])) {
-        $field = new stdClass();
-        $field->shortname = 'department';
-        $field->name = 'Department';
-        $field->description = 'User department';
-        $field->descriptionformat = 1;
-        $field->datatype = 'menu';
-        $field->categoryid = $categoryid;
-        $field->sortorder = 1;
-        $field->required = 0;
-        $field->locked = 0;
-        $field->visible = 2; // Visible to everyone
-        $field->forceunique = 0;
-        $field->signup = 0;
-        $field->defaultdata = '';
-        $field->defaultdataformat = 0;
-        $field->param1 = "Pizzicaroli\nGesmundo\nRemoto"; // Menu options
-        $field->param2 = ''; 
-        $field->param3 = ''; 
-        $field->param4 = ''; 
-        $field->param5 = '';
-        
-        $DB->insert_record('user_info_field', $field);
-    }
+    // Campo Department
+    $field_department = new stdClass();
+    $field_department->shortname = 'whereareyou_department';
+    $field_department->name = get_string('department', 'local_whereareyou');
+    $field_department->datatype = 'menu';
+    $field_department->categoryid = $categoryid;
+    $field_department->sortorder = 1;
+    $field_department->required = 0;
+    $field_department->locked = 0;
+    $field_department->visible = 2;
+    $field_department->forceunique = 0;
+    $field_department->signup = 0;
+    $field_department->defaultdata = '';
+    $field_department->param1 = "Pizzicaroli\nGesmundo\nRemoto";
+    $deptid = $DB->insert_record('user_info_field', $field_department);
     
-    // Create custom profile field for Position
-    if (!$DB->record_exists('user_info_field', ['shortname' => 'position'])) {
-        $field = new stdClass();
-        $field->shortname = 'position';
-        $field->name = 'Position';
-        $field->description = 'User position';
-        $field->descriptionformat = 1;
-        $field->datatype = 'menu';
-        $field->categoryid = $categoryid;
-        $field->sortorder = 2;
-        $field->required = 0;
-        $field->locked = 0;
-        $field->visible = 2; // Visible to everyone
-        $field->forceunique = 0;
-        $field->signup = 0;
-        $field->defaultdata = '';
-        $field->defaultdataformat = 0;
-        $field->param1 = "Preside\nInsegnante\nAlunno"; // Menu options
-        $field->param2 = ''; 
-        $field->param3 = ''; 
-        $field->param4 = ''; 
-        $field->param5 = '';
-        
-        $DB->insert_record('user_info_field', $field);
-    }
+    // Campo Position
+    $field_position = new stdClass();
+    $field_position->shortname = 'whereareyou_position';
+    $field_position->name = get_string('position', 'local_whereareyou');
+    $field_position->datatype = 'menu';
+    $field_position->categoryid = $categoryid;
+    $field_position->sortorder = 2;
+    $field_position->required = 0;
+    $field_position->locked = 0;
+    $field_position->visible = 2;
+    $field_position->forceunique = 0;
+    $field_position->signup = 0;
+    $field_position->defaultdata = '';
+    $field_position->param1 = "Preside\nInsegnante\nAlunno";
+    $posid = $DB->insert_record('user_info_field', $field_position);
     
     return true;
 }

@@ -1,158 +1,371 @@
 /**
- * Where Are You modal functionality
- *
- * @module     local_whereareyou/modal
- * @copyright  2025
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * WhereAreYou Modal - Modulo JavaScript moderno (senza jQuery)
+ * 
+ * @module local_whereareyou/modal
+ * @copyright 2025
+ * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-import $ from 'jquery';
-import 'core/modal';
-import {get_string} from 'core/str';
-import Ajax from 'core/ajax';
-import Notification from 'core/notification';
-import Templates from 'core/templates';
+define([
+    'core/templates',
+    'core/str',
+    'core/notification'
+], function(Templates, Str, Notification) {
+    'use strict';
 
-/**
- * Initialize the modal
- * @param {Object} config Configuration object
- */
-export const init = (config) => {
-    
-    // Wait for page to be ready
-    $(document).ready(() => {
-        showModal(config);
-    });
-};
-
-/**
- * Show the modal
- * @param {Object} config Configuration object
- */
-const showModal = async (config) => {
-    try {
-        // Prepare template context with selected values
-        const context = {
-            ...config,
-            department_options: config.department_options.map(option => ({
-                ...option,
-                selected: option.value === config.current_department
-            })),
-            position_options: config.position_options.map(option => ({
-                ...option,
-                selected: option.value === config.current_position
-            }))
-        };
+    /**
+     * Classe principale per gestire la modal WhereAreYou
+     */
+    class WhereAreYouModal {
         
-        // Render modal template
-        const html = await Templates.render('local_whereareyou/modal', context);
-        
-        // Add modal to page
-        $('body').append(html);
-        
-        // Show modal
-        const $modal = $('#whereareyou-modal');
-        $modal.modal('show');
-        
-        // Bind events
-        bindEvents($modal, config);
-        
-    } catch (error) {
-        console.error('Error showing Where Are You modal:', error);
-    }
-};
-
-/**
- * Bind modal events
- * @param {jQuery} $modal Modal jQuery object
- * @param {Object} config Configuration object
- */
-const bindEvents = ($modal, config) => {
-    
-    // Save button click
-    $modal.find('#whereareyou-save').on('click', async function() {
-        const $button = $(this);
-        const $form = $('#whereareyou-form');
-        const department = $form.find('#department-select').val();
-        const position = $form.find('#position-select').val();
-        
-        if (!department || !position) {
-            showMessage('Per favore seleziona sia il dipartimento che la posizione.', 'warning');
-            return;
+        constructor() {
+            this.config = null;
+            this.modalElement = null;
+            this.isLoading = false;
         }
-        
-        // Disable button and show loading
-        $button.prop('disabled', true);
-        $button.html('<i class="fa fa-spinner fa-spin me-2"></i>Salvataggio...');
-        
-        try {
-            const response = await $.ajax({
-                url: M.cfg.wwwroot + '/local/whereareyou/ajax.php',
-                method: 'POST',
-                data: {
-                    action: 'save',
-                    department: department,
-                    position: position,
-                    sesskey: M.cfg.sesskey
-                },
-                dataType: 'json'
-            });
-            
-            if (response.success) {
-                showMessage('Informazioni salvate con successo!', 'success');
+
+        /**
+         * Inizializza il modulo
+         */
+        async init() {
+            try {
+                // Recupera configurazione passata da PHP
+                this.config = window.M.cfg.whereareyou_config || {};
                 
-                // Close modal after 1 second
-                setTimeout(() => {
-                    $modal.modal('hide');
-                    $modal.remove();
-                }, 1000);
-            } else {
-                throw new Error(response.error || 'Errore sconosciuto');
+                // Carica le stringhe di lingua
+                await this.loadLanguageStrings();
+                
+                // Renderizza e mostra la modal
+                await this.renderModal();
+                
+                // Aggiunge event listeners
+                this.attachEventListeners();
+                
+                console.log('WhereAreYou Modal inizializzata');
+                
+            } catch (error) {
+                console.error('Errore inizializzazione WhereAreYou Modal:', error);
+                Notification.exception(error);
             }
+        }
+
+        /**
+         * Carica le stringhe di lingua
+         */
+        async loadLanguageStrings() {
+            const strings = await Str.get_strings([
+                {key: 'modal_title', component: 'local_whereareyou'},
+                {key: 'department', component: 'local_whereareyou'},
+                {key: 'position', component: 'local_whereareyou'},
+                {key: 'save', component: 'local_whereareyou'},
+                {key: 'logout', component: 'local_whereareyou'},
+                {key: 'department_pizzicaroli', component: 'local_whereareyou'},
+                {key: 'department_gesmundo', component: 'local_whereareyou'},
+                {key: 'department_remote', component: 'local_whereareyou'},
+                {key: 'position_preside', component: 'local_whereareyou'},
+                {key: 'position_teacher', component: 'local_whereareyou'},
+                {key: 'position_student', component: 'local_whereareyou'}
+            ]);
+
+            this.strings = {
+                modal_title: strings[0],
+                department_label: strings[1],
+                position_label: strings[2],
+                save_label: strings[3],
+                logout_label: strings[4],
+                departments: {
+                    pizzicaroli: strings[5],
+                    gesmundo: strings[6],
+                    remote: strings[7]
+                },
+                positions: {
+                    preside: strings[8],
+                    teacher: strings[9],
+                    student: strings[10]
+                }
+            };
+        }
+
+        /**
+         * Prepara i dati per il template
+         */
+        prepareTemplateData() {
+            const currentDept = this.config.current_department || '';
+            const currentPos = this.config.current_position || '';
+
+            return {
+                modal_title: this.strings.modal_title,
+                department_label: this.strings.department_label,
+                position_label: this.strings.position_label,
+                save_label: this.strings.save_label,
+                logout_label: this.strings.logout_label,
+                departments: [
+                    {
+                        value: 'Pizzicaroli',
+                        label: this.strings.departments.pizzicaroli,
+                        selected: currentDept === 'Pizzicaroli'
+                    },
+                    {
+                        value: 'Gesmundo',
+                        label: this.strings.departments.gesmundo,
+                        selected: currentDept === 'Gesmundo'
+                    },
+                    {
+                        value: 'Remoto',
+                        label: this.strings.departments.remote,
+                        selected: currentDept === 'Remoto'
+                    }
+                ],
+                positions: [
+                    {
+                        value: 'Preside',
+                        label: this.strings.positions.preside,
+                        selected: currentPos === 'Preside'
+                    },
+                    {
+                        value: 'Insegnante',
+                        label: this.strings.positions.teacher,
+                        selected: currentPos === 'Insegnante'
+                    },
+                    {
+                        value: 'Alunno',
+                        label: this.strings.positions.student,
+                        selected: currentPos === 'Alunno'
+                    }
+                ]
+            };
+        }
+
+        /**
+         * Renderizza la modal usando il template Mustache
+         */
+        async renderModal() {
+            try {
+                const templateData = this.prepareTemplateData();
+                
+                // Renderizza il template
+                const html = await Templates.render('local_whereareyou/modal', templateData);
+                
+                // Aggiunge al DOM
+                document.body.insertAdjacentHTML('beforeend', html);
+                
+                // Salva riferimento all'elemento
+                this.modalElement = document.getElementById('whereareyou-modal-backdrop');
+                
+                // Mostra la modal con animazione
+                this.showModal();
+                
+            } catch (error) {
+                console.error('Errore rendering modal:', error);
+                throw error;
+            }
+        }
+
+        /**
+         * Mostra la modal
+         */
+        showModal() {
+            if (this.modalElement) {
+                this.modalElement.style.display = 'flex';
+                // Forza il reflow per attivare l'animazione CSS
+                this.modalElement.offsetHeight;
+                this.modalElement.classList.add('show');
+                
+                // Focus sul primo campo
+                const firstSelect = this.modalElement.querySelector('#whereareyou-department');
+                if (firstSelect) {
+                    firstSelect.focus();
+                }
+            }
+        }
+
+        /**
+         * Nasconde la modal
+         */
+        hideModal() {
+            if (this.modalElement) {
+                this.modalElement.style.display = 'none';
+                this.modalElement.remove();
+                this.modalElement = null;
+            }
+        }
+
+        /**
+         * Aggiunge event listeners
+         */
+        attachEventListeners() {
+            if (!this.modalElement) return;
+
+            // Bottone Salva
+            const saveBtn = this.modalElement.querySelector('#whereareyou-save-btn');
+            if (saveBtn) {
+                saveBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.handleSave();
+                });
+            }
+
+            // Bottone Logout
+            const logoutBtn = this.modalElement.querySelector('#whereareyou-logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.handleLogout();
+                });
+            }
+
+            // Submit del form
+            const form = this.modalElement.querySelector('#whereareyou-form');
+            if (form) {
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleSave();
+                });
+            }
+
+            // Escape key per chiudere (opzionale - al momento non implementato)
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && this.modalElement && !this.isLoading) {
+                    // Nota: per ora non chiudiamo con Escape perché vogliamo che l'utente scelga
+                    console.log('Escape premuto - modal rimane aperta');
+                }
+            });
+        }
+
+        /**
+         * Gestisce il salvataggio dei dati
+         */
+        async handleSave() {
+            if (this.isLoading) return;
+
+            try {
+                // Recupera i valori
+                const department = this.modalElement.querySelector('#whereareyou-department').value;
+                const position = this.modalElement.querySelector('#whereareyou-position').value;
+
+                // Validazione client-side
+                if (!department || !position) {
+                    await Notification.alert('Attenzione', 'Seleziona sia il dipartimento che la posizione.');
+                    return;
+                }
+
+                // Mostra loading
+                this.setLoading(true);
+
+                // Invia i dati via AJAX
+                const success = await this.saveData(department, position);
+
+                if (success) {
+                    // Successo - nascondi modal
+                    this.hideModal();
+                    await Notification.alert('Successo', 'Dati salvati correttamente!');
+                } else {
+                    throw new Error('Salvataggio fallito');
+                }
+
+            } catch (error) {
+                console.error('Errore salvataggio:', error);
+                await Notification.exception(error);
+            } finally {
+                this.setLoading(false);
+            }
+        }
+
+        /**
+         * Invia dati al server via AJAX
+         */
+        async saveData(department, position) {
+            try {
+                const formData = new FormData();
+                formData.append('action', 'save');
+                formData.append('department', department);
+                formData.append('position', position);
+                formData.append('sesskey', window.M.cfg.sesskey);
+
+                const response = await fetch(this.config.ajax_url, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    return true;
+                } else {
+                    throw new Error(data.error || 'Errore sconosciuto');
+                }
+
+            } catch (error) {
+                console.error('Errore AJAX:', error);
+                throw error;
+            }
+        }
+
+        /**
+         * Gestisce il logout
+         */
+        handleLogout() {
+            if (this.isLoading) return;
             
-        } catch (error) {
-            console.error('Save error:', error);
-            showMessage('Errore nel salvare le informazioni. Riprova.', 'danger');
-        } finally {
-            // Re-enable button
-            $button.prop('disabled', false);
-            $button.html('<i class="fa fa-save me-2"></i>Salva');
+            // Redirect alla pagina di logout
+            if (this.config.logout_url) {
+                window.location.href = this.config.logout_url;
+            } else {
+                console.error('URL logout non configurato');
+            }
         }
-    });
-    
-    // Logout button click
-    $modal.find('#whereareyou-logout').on('click', function() {
-        window.location.href = M.cfg.wwwroot + '/login/logout.php?sesskey=' + M.cfg.sesskey;
-    });
-    
-    // Prevent modal from closing on backdrop click or escape
-    $modal.on('hide.bs.modal', function(e) {
-        // Allow programmatic hiding only
-        if (!$(this).data('allow-hide')) {
-            e.preventDefault();
-            return false;
-        }
-    });
-};
 
-/**
- * Show message in modal
- * @param {string} message Message text
- * @param {string} type Alert type (success, warning, danger, info)
- */
-const showMessage = (message, type = 'info') => {
-    const $messageDiv = $('#whereareyou-message');
-    $messageDiv
-        .removeClass('alert-success alert-warning alert-danger alert-info')
-        .addClass(`alert-${type}`)
-        .text(message)
-        .removeClass('d-none');
-    
-    // Auto-hide after 3 seconds for success messages
-    if (type === 'success') {
-        setTimeout(() => {
-            $messageDiv.addClass('d-none');
-        }, 3000);
+        /**
+         * Mostra/nasconde stato di loading
+         */
+        setLoading(loading) {
+            this.isLoading = loading;
+            
+            if (!this.modalElement) return;
+
+            const loadingEl = this.modalElement.querySelector('#whereareyou-loading');
+            const saveBtn = this.modalElement.querySelector('#whereareyou-save-btn');
+            const logoutBtn = this.modalElement.querySelector('#whereareyou-logout-btn');
+
+            if (loading) {
+                if (loadingEl) loadingEl.style.display = 'flex';
+                if (saveBtn) saveBtn.disabled = true;
+                if (logoutBtn) logoutBtn.disabled = true;
+            } else {
+                if (loadingEl) loadingEl.style.display = 'none';
+                if (saveBtn) saveBtn.disabled = false;
+                if (logoutBtn) logoutBtn.disabled = false;
+            }
+        }
     }
-};
 
+    // Istanza singola del modulo
+    let modalInstance = null;
+
+    return {
+        /**
+         * Punto di ingresso del modulo
+         */
+        init: function() {
+            if (!modalInstance) {
+                modalInstance = new WhereAreYouModal();
+            }
+            modalInstance.init();
+        },
+
+        /**
+         * Per testing - mostra modal programmaticamente
+         */
+        showModal: function() {
+            if (!modalInstance) {
+                modalInstance = new WhereAreYouModal();
+            }
+            modalInstance.init();
+        }
+    };
+});

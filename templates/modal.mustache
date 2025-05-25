@@ -1,68 +1,256 @@
 {{!
-    @template local_whereareyou/modal
-
-    Where Are You modal template.
-
-    Context variables required for this template:
-    * department_options - Array of department options
-    * position_options - Array of position options
-    * current_department - Current user department
-    * current_position - Current user position
-    * sesskey - Session key
-    * wwwroot - Site root URL
+    Template per la modal WhereAreYou
+    Context: {
+        modal_title: string,
+        department_label: string,
+        position_label: string,
+        save_label: string,
+        logout_label: string,
+        departments: [
+            {value: string, label: string, selected: boolean}
+        ],
+        positions: [
+            {value: string, label: string, selected: boolean}
+        ]
+    }
 }}
-<div id="whereareyou-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="whereareyou-modal-title" aria-hidden="true" data-backdrop="static" data-keyboard="false">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="whereareyou-modal-title">
-                    <i class="fa fa-map-marker-alt me-2"></i>
-                    {{#str}}modal_title, local_whereareyou{{/str}}
-                </h5>
-            </div>
-            <div class="modal-body">
-                <p class="text-muted mb-4">{{#str}}modal_subtitle, local_whereareyou{{/str}}</p>
+<div id="whereareyou-modal-backdrop" class="whereareyou-modal-backdrop">
+    <div class="whereareyou-modal" role="dialog" aria-labelledby="whereareyou-modal-title" aria-modal="true">
+        <div class="whereareyou-modal-header">
+            <h2 id="whereareyou-modal-title" class="whereareyou-modal-title">
+                {{modal_title}}
+            </h2>
+        </div>
+        
+        <div class="whereareyou-modal-body">
+            <form id="whereareyou-form" class="whereareyou-form">
+                <div class="whereareyou-field-group">
+                    <label for="whereareyou-department" class="whereareyou-label">
+                        {{department_label}}
+                    </label>
+                    <select id="whereareyou-department" name="department" class="whereareyou-select" required>
+                        <option value="">-- Seleziona --</option>
+                        {{#departments}}
+                        <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
+                        {{/departments}}
+                    </select>
+                </div>
                 
-                <form id="whereareyou-form">
-                    <input type="hidden" name="sesskey" value="{{sesskey}}">
-                    
-                    <div class="mb-3">
-                        <label for="department-select" class="form-label fw-bold">
-                            {{#str}}department_label, local_whereareyou{{/str}}
-                        </label>
-                        <select id="department-select" name="department" class="form-select" required>
-                            <option value="">{{#str}}select_department, local_whereareyou{{/str}}</option>
-                            {{#department_options}}
-                                <option value="{{value}}" {{#selected}}selected{{/selected}}>{{text}}</option>
-                            {{/department_options}}
-                        </select>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <label for="position-select" class="form-label fw-bold">
-                            {{#str}}position_label, local_whereareyou{{/str}}
-                        </label>
-                        <select id="position-select" name="position" class="form-select" required>
-                            <option value="">{{#str}}select_position, local_whereareyou{{/str}}</option>
-                            {{#position_options}}
-                                <option value="{{value}}" {{#selected}}selected{{/selected}}>{{text}}</option>
-                            {{/position_options}}
-                        </select>
-                    </div>
-                    
-                    <div class="alert alert-info d-none" id="whereareyou-message"></div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" id="whereareyou-logout">
-                    <i class="fa fa-sign-out-alt me-2"></i>
-                    {{#str}}logout_button, local_whereareyou{{/str}}
-                </button>
-                <button type="button" class="btn btn-primary" id="whereareyou-save">
-                    <i class="fa fa-save me-2"></i>
-                    {{#str}}save_button, local_whereareyou{{/str}}
-                </button>
-            </div>
+                <div class="whereareyou-field-group">
+                    <label for="whereareyou-position" class="whereareyou-label">
+                        {{position_label}}
+                    </label>
+                    <select id="whereareyou-position" name="position" class="whereareyou-select" required>
+                        <option value="">-- Seleziona --</option>
+                        {{#positions}}
+                        <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
+                        {{/positions}}
+                    </select>
+                </div>
+            </form>
+        </div>
+        
+        <div class="whereareyou-modal-footer">
+            <button id="whereareyou-save-btn" type="button" class="whereareyou-btn whereareyou-btn-primary">
+                {{save_label}}
+            </button>
+            <button id="whereareyou-logout-btn" type="button" class="whereareyou-btn whereareyou-btn-secondary">
+                {{logout_label}}
+            </button>
+        </div>
+        
+        <div id="whereareyou-loading" class="whereareyou-loading" style="display: none;">
+            <div class="whereareyou-spinner"></div>
         </div>
     </div>
 </div>
+
+<style>
+/* Stili per la modal WhereAreYou */
+.whereareyou-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+}
+
+.whereareyou-modal {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    width: 90%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow: hidden;
+    position: relative;
+    animation: whereareyou-modal-enter 0.3s ease-out;
+}
+
+@keyframes whereareyou-modal-enter {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.whereareyou-modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 24px;
+    text-align: center;
+}
+
+.whereareyou-modal-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.whereareyou-modal-body {
+    padding: 32px 24px;
+}
+
+.whereareyou-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.whereareyou-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.whereareyou-label {
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.95rem;
+}
+
+.whereareyou-select {
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 1rem;
+    background-color: white;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.whereareyou-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.whereareyou-select:hover {
+    border-color: #d1d5db;
+}
+
+.whereareyou-modal-footer {
+    padding: 24px;
+    background-color: #f9fafb;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.whereareyou-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 100px;
+}
+
+.whereareyou-btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.whereareyou-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.whereareyou-btn-secondary {
+    background-color: #6b7280;
+    color: white;
+}
+
+.whereareyou-btn-secondary:hover {
+    background-color: #4b5563;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(75, 85, 99, 0.3);
+}
+
+.whereareyou-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.whereareyou-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.whereareyou-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #e5e7eb;
+    border-top: 3px solid #667eea;
+    border-radius: 50%;
+    animation: whereareyou-spin 1s linear infinite;
+}
+
+@keyframes whereareyou-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+    .whereareyou-modal {
+        width: 95%;
+        margin: 16px;
+    }
+    
+    .whereareyou-modal-header,
+    .whereareyou-modal-body,
+    .whereareyou-modal-footer {
+        padding: 20px;
+    }
+    
+    .whereareyou-modal-footer {
+        flex-direction: column;
+    }
+    
+    .whereareyou-btn {
+        width: 100%;
+    }
+}</style>

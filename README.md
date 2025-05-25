@@ -60,7 +60,7 @@ Per problemi o domande, consulta la documentazione di Moodle o contatta l'ammini
 ### **Architettura chiave**:
 * Hook: Sistema moderno di hook per iniettare funzionalità
 * Template: Mustache per rendering interfacce
-* JavaScript: Moduli AMD/RequireJS per funzionalità client-side
+* JavaScript: Moduli AMD/RequireJS per funzionalità client-side, NON USARE jquery
 * AJAX: Endpoint per comunicazione asincrona
 * Installazione: Setup automatico database/configurazione
 

@@ -1,8 +1,8 @@
 <?php
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2025052501;        // YYYYMMDDHH (date version)
-$plugin->requires  = 20250414;          // Moodle 5.0+
 $plugin->component = 'local_whereareyou';
-$plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = 'v2.0.0';
+$plugin->version = 2025052510;
+$plugin->requires = 2024100700; // Moodle 5.0+
+$plugin->maturity = MATURITY_STABLE;
+$plugin->release = '1.0.0';
