@@ -6,7 +6,7 @@ use core\hook\output\before_standard_head_html_generation;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Hook callbacks for WhereAreYou plugin
+ * Hook callbacks for WhereAreYou plugin - VERSIONE FISSA
  */
 class hook_callbacks {
     
@@ -18,20 +18,27 @@ class hook_callbacks {
     public static function before_standard_head_html_generation(before_standard_head_html_generation $hook): void {
         global $USER, $PAGE, $CFG;
         
+        // DEBUG: Log sempre per capire se il hook viene chiamato
+        error_log("WhereAreYou Hook: Chiamato per utente {$USER->id} su pagina {$PAGE->url->get_path()}");
+        
         // Only show modal for logged in users, not on login page
         if (!isloggedin() || isguestuser() || $PAGE->pagelayout === 'login') {
+            error_log("WhereAreYou Hook: Saltato - utente non loggato o pagina login");
             return;
         }
         
         // Skip for AJAX requests and certain page types
         if (defined('AJAX_SCRIPT') || $PAGE->pagelayout === 'popup' || $PAGE->pagelayout === 'frametree') {
+            error_log("WhereAreYou Hook: Saltato - AJAX o popup/frametree");
             return;
         }
         
         // Skip for admin pages - but allow test page
         if ($PAGE->pagelayout === 'admin' && 
             strpos($PAGE->url->get_path(), '/local/whereareyou/test.php') === false && 
-            strpos($PAGE->url->get_path(), '/local/whereareyou/debug.php') === false) {
+            strpos($PAGE->url->get_path(), '/local/whereareyou/debug.php') === false &&
+            strpos($PAGE->url->get_path(), '/local/whereareyou/hook_test.php') === false) {
+            error_log("WhereAreYou Hook: Saltato - pagina admin non permessa");
             return;
         }        
         
@@ -45,27 +52,21 @@ class hook_callbacks {
         
         // Only proceed if we have options configured
         if (empty($department_options) || empty($position_options)) {
+            error_log("WhereAreYou Hook: Saltato - opzioni non configurate");
             return;
         }
         
         // Verifica se è già stata mostrata in questa sessione
         $session_key = 'local_whereareyou_shown_' . session_id();
-        $last_shown = get_user_preferences('local_whereareyou_last_shown', 0, $USER->id);
         $session_shown = get_user_preferences($session_key, 0, $USER->id);
         
         // Se è già stata mostrata in questa sessione, non mostrarla di nuovo
         if ($session_shown) {
+            error_log("WhereAreYou Hook: Saltato - già mostrata in questa sessione");
             return;
         }
         
-        // Opzionale: mostra solo una volta al giorno (rimuovi questo blocco se vuoi che appaia ad ogni login)
-        $today = date('Y-m-d');
-        $last_shown_date = date('Y-m-d', $last_shown);
-        
-        // Se è già stata mostrata oggi, non mostrarla di nuovo (commenta queste righe per mostrarla ad ogni login)
-        // if ($last_shown_date === $today) {
-        //     return;
-        // }
+        error_log("WhereAreYou Hook: Tutte le condizioni soddisfatte - generazione script");
         
         // Prepare template context
         $templatecontext = [
@@ -77,18 +78,41 @@ class hook_callbacks {
             'wwwroot' => $CFG->wwwroot,
         ];
         
-        // Migliore approccio: Add script direttamente to head con gestione errori
+        // Controlla se esiste il file AMD compilato
+        $amd_build_file = $CFG->dirroot . '/local/whereareyou/amd/build/modal.min.js';
+        $use_requirejs = file_exists($amd_build_file);
+        
+        error_log("WhereAreYou Hook: File AMD build esiste: " . ($use_requirejs ? 'SI' : 'NO'));
+        
         $js_config = json_encode($templatecontext);
-        $script = "
+        
+        if ($use_requirejs) {
+            // Usa RequireJS (metodo originale)
+            $script = self::generateRequireJSScript($js_config, $templatecontext);
+        } else {
+            // Usa workaround diretto
+            $script = self::generateDirectScript($js_config, $templatecontext);
+        }
+        
+        // Add to head
+        $hook->add_html($script);
+        
+        error_log("WhereAreYou Hook: Script aggiunto al head");
+    }
+    
+    /**
+     * Genera script RequireJS (metodo originale)
+     */
+    private static function generateRequireJSScript($js_config, $templatecontext) {
+        global $USER, $CFG;
+        $sesskey = sesskey();
+        
+        return "
         <script>
-        console.log('WhereAreYou: Hook chiamato per utente {$USER->id}');
-        console.log('WhereAreYou: Dipartimento corrente: {$department}');
-        console.log('WhereAreYou: Posizione corrente: {$position}');
+        console.log('WhereAreYou: Hook chiamato per utente {$USER->id} (RequireJS)');
         
         // Store config globally
         window.whereAreYouConfig = {$js_config};
-        
-        // Flag per evitare inizializzazioni multiple
         window.whereAreYouInitialized = false;
         
         // Function to initialize modal
@@ -99,60 +123,144 @@ class hook_callbacks {
             }
             
             if (typeof require !== 'undefined') {
-                console.log('WhereAreYou: Caricamento modulo modale...');
+                console.log('WhereAreYou: Caricamento modulo modale RequireJS...');
                 require(['local_whereareyou/modal'], function(modal) {
                     console.log('WhereAreYou: Modulo modale caricato con successo');
                     try {
                         modal.init(window.whereAreYouConfig);
                         window.whereAreYouInitialized = true;
                         
-                        // Aggiorna timestamp dell'ultima visualizzazione e segna come mostrata in questa sessione
+                        // Aggiorna timestamp
                         var xhr = new XMLHttpRequest();
                         xhr.open('POST', '{$CFG->wwwroot}/local/whereareyou/ajax.php', true);
                         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
                         xhr.send('action=update_last_shown&sesskey=' + encodeURIComponent('{$sesskey}'));
                         
                     } catch (error) {
-                        console.error('WhereAreYou: Errore nell\\'inizializzazione della modale:', error);
+                        console.error('WhereAreYou: Errore inizializzazione:', error);
                     }
                 }, function(error) {
-                    console.error('WhereAreYou: Fallito caricamento modale', error);
-                    // Riprova dopo un po'
-                    setTimeout(function() {
-                        console.log('WhereAreYou: Nuovo tentativo di caricamento...');
-                        window.whereAreYouInitialized = false;
-                        initWhereAreYouModal();
-                    }, 2000);
+                    console.error('WhereAreYou: Fallito caricamento modale RequireJS, provo metodo diretto', error);
+                    // Fallback al metodo diretto
+                    window.whereAreYouInitialized = false;
+                    initWhereAreYouModalDirect();
                 });
             } else {
-                console.log('WhereAreYou: RequireJS non pronto, riprovo tra 1 secondo...');
-                setTimeout(initWhereAreYouModal, 1000);
+                console.log('WhereAreYou: RequireJS non pronto, provo metodo diretto...');
+                initWhereAreYouModalDirect();
             }
         }
         
-        // Inizializza quando la pagina è caricata
+        // Fallback diretto se RequireJS fallisce
+        function initWhereAreYouModalDirect() {
+            console.log('WhereAreYou: Tentativo metodo diretto...');
+            // Carica script diretto se non già caricato
+            if (typeof window.WhereAreYouModal === 'undefined') {
+                var script = document.createElement('script');
+                script.src = '{$CFG->wwwroot}/local/whereareyou/modal_direct.js?v=' + Date.now();
+                script.onload = function() {
+                    console.log('WhereAreYou: Script diretto caricato');
+                    if (window.WhereAreYouModal) {
+                        window.WhereAreYouModal.init(window.whereAreYouConfig);
+                        window.whereAreYouInitialized = true;
+                        
+                        // Aggiorna timestamp
+                        var xhr = new XMLHttpRequest();
+                        xhr.open('POST', '{$CFG->wwwroot}/local/whereareyou/ajax.php', true);
+                        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                        xhr.send('action=update_last_shown&sesskey=' + encodeURIComponent('{$sesskey}'));
+                    }
+                };
+                script.onerror = function() {
+                    console.error('WhereAreYou: Impossibile caricare anche lo script diretto');
+                };
+                document.head.appendChild(script);
+            } else {
+                window.WhereAreYouModal.init(window.whereAreYouConfig);
+                window.whereAreYouInitialized = true;
+            }
+        }
+        
+        // Inizializza quando la pagina è pronta
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', function() {
-                console.log('WhereAreYou: DOM caricato, inizializzazione in 500ms...');
                 setTimeout(initWhereAreYouModal, 500);
             });
         } else {
-            console.log('WhereAreYou: DOM già caricato, inizializzazione in 1 secondo...');
             setTimeout(initWhereAreYouModal, 1000);
         }
         
-        // Fallback: inizializza anche quando la window è completamente caricata
         window.addEventListener('load', function() {
             if (!window.whereAreYouInitialized) {
-                console.log('WhereAreYou: Window caricata, ultimo tentativo di inizializzazione...');
                 setTimeout(initWhereAreYouModal, 500);
             }
         });
         </script>
         ";
+    }
+    
+    /**
+     * Genera script diretto (workaround)
+     */
+    private static function generateDirectScript($js_config, $templatecontext) {
+        global $USER, $CFG;
+        $sesskey = sesskey();
         
-        // Add to head
-        $hook->add_html($script);
+        return "
+        <script>
+        console.log('WhereAreYou: Hook chiamato per utente {$USER->id} (Metodo Diretto)');
+        
+        // Store config globally
+        window.whereAreYouConfig = {$js_config};
+        window.whereAreYouInitialized = false;
+        
+        // Carica script diretto
+        function loadWhereAreYouDirect() {
+            if (window.whereAreYouInitialized) {
+                return;
+            }
+            
+            console.log('WhereAreYou: Caricamento script diretto...');
+            
+            var script = document.createElement('script');
+            script.src = '{$CFG->wwwroot}/local/whereareyou/modal_direct.js?v=' + Date.now();
+            script.onload = function() {
+                console.log('WhereAreYou: Script diretto caricato con successo');
+                if (window.WhereAreYouModal) {
+                    window.WhereAreYouModal.init(window.whereAreYouConfig);
+                    window.whereAreYouInitialized = true;
+                    
+                    // Aggiorna timestamp
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', '{$CFG->wwwroot}/local/whereareyou/ajax.php', true);
+                    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                    xhr.send('action=update_last_shown&sesskey=' + encodeURIComponent('{$sesskey}'));
+                } else {
+                    console.error('WhereAreYou: Script caricato ma oggetto non trovato');
+                }
+            };
+            script.onerror = function() {
+                console.error('WhereAreYou: Errore nel caricamento script diretto');
+            };
+            document.head.appendChild(script);
+        }
+        
+        // Inizializza
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                setTimeout(loadWhereAreYouDirect, 500);
+            });
+        } else {
+            setTimeout(loadWhereAreYouDirect, 1000);
+        }
+        
+        window.addEventListener('load', function() {
+            if (!window.whereAreYouInitialized) {
+                setTimeout(loadWhereAreYouDirect, 500);
+            }
+        });
+        </script>
+        ";
     }
     
     /**
@@ -196,19 +304,13 @@ class hook_callbacks {
             return [];
         }
         
-        // Gestisce sia newline che spazi come separatori
         $raw_options = $field->param1;
         
-        // Prima prova con newline
         if (strpos($raw_options, "\n") !== false) {
             $options = explode("\n", $raw_options);
-        } 
-        // Se non ci sono newline, prova con gli spazi
-        else if (strpos($raw_options, " ") !== false) {
+        } else if (strpos($raw_options, " ") !== false) {
             $options = explode(" ", $raw_options);
-        }
-        // Altrimenti è un singolo valore
-        else {
+        } else {
             $options = [$raw_options];
         }
         
@@ -233,19 +335,13 @@ class hook_callbacks {
             return [];
         }
         
-        // Gestisce sia newline che spazi come separatori
         $raw_options = $field->param1;
         
-        // Prima prova con newline
         if (strpos($raw_options, "\n") !== false) {
             $options = explode("\n", $raw_options);
-        } 
-        // Se non ci sono newline, prova con gli spazi
-        else if (strpos($raw_options, " ") !== false) {
+        } else if (strpos($raw_options, " ") !== false) {
             $options = explode(" ", $raw_options);
-        }
-        // Altrimenti è un singolo valore
-        else {
+        } else {
             $options = [$raw_options];
         }
         

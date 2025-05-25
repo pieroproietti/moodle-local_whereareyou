@@ -19,6 +19,8 @@ SUMMARIZE_FILES = {
     'settings.php': 'Configurazione amministrativa - aggiunge pagine al menu admin'
 }
 
+SUMMARIZE_FILES = {}
+
 # File da escludere completamente
 EXCLUDE_FILES = ['.min.js.map', '.min.css.map']
 
@@ -331,10 +333,10 @@ def generate_folder_summary(target_directory, include_minified=False, include_de
             write_readme_section(f, target_directory)
             
             # --- Sezione Panoramica Tecnica ---
-            write_technical_overview(f, php_files_relative, js_files_relative, mustache_files_relative, target_directory)
+            # write_technical_overview(f, php_files_relative, js_files_relative, mustache_files_relative, target_directory)
             
             # --- Sezione Flusso Funzionale ---
-            write_functional_flow(f, php_files_relative, js_files_relative)
+            # write_functional_flow(f, php_files_relative, js_files_relative)
             
             # --- Sezione File PHP ---
             write_file_section(f, "File PHP", php_files_relative, target_directory, "php")
