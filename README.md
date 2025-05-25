@@ -110,4 +110,9 @@ sequenceDiagram
 
 * La customizzazione dei campi `department` e `position` dell'esempio può essere customizzata su [db/install.php](./db/install.php).
 
+* Nella creazione di questo codice ci si è avvalsi **pesantemente** della AI, in particolare di [Claude](https://claude.ai/new), [Gemini](https://gemini.google.com/), ma preziose informazioni sono venute anche da [deepseek](https://chat.deepseek.com/) ed altri. Per fornire un contesto, si raccomanda di usare lo script python 'bin/sunto.py`, che fornisce all'AI una documentazione strutturata di tutti i files php, js, mustache del plugin stesso.
+
+* Pur avendo scritto il plugin, manca - non sono riuscito a trovarla - una documentazione esaustiva di come si scrivano i plugin per moodle, sembra un processo fluido più che solido e forse a questo ci dovremo abituare.
+
+
 
