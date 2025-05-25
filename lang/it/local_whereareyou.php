@@ -16,3 +16,6 @@ $string['position_student'] = 'Alunno';
 $string['testpage'] = 'Pagina Test WhereAreYou';
 $string['showmodal'] = 'Mostra Modal';
 $string['resetdata'] = 'Reset Dati';
+$string['saveerror'] = 'Errore durante il salvataggio dei dati';
+$string['reseterror'] = 'Errore durante il reset dei dati';
+$string['statuserror'] = 'Errore durante il recupero dello status';

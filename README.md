@@ -34,15 +34,6 @@ Il plugin creerà automaticamente:
 - I dati vengono salvati nei campi personalizzati del profilo
 - La modal è sempre visibile (anche se i campi sono già compilati)
 
-## Testing
-
-Per testare la funzionalità senza dover fare login/logout ripetutamente:
-
-1. Vai in **Site administration > Local plugins > WhereAreYou Test Page**
-2. Clicca **"Show Modal"** per visualizzare la modale
-3. Testa il salvataggio dei dati
-4. Usa **"Reset My Data"** per pulire i valori e ritestare
-
 ## Requisiti
 
 - Moodle 5.0+

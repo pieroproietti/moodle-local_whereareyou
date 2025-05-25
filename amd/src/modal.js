@@ -1,21 +1,10 @@
-/**
- * WhereAreYou Modal - Modulo JavaScript moderno (senza jQuery)
- * 
- * @module local_whereareyou/modal
- * @copyright 2025
- * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-
 define([
     'core/templates',
-    'core/str',
+    'core/str', 
     'core/notification'
 ], function(Templates, Str, Notification) {
     'use strict';
 
-    /**
-     * Classe principale per gestire la modal WhereAreYou
-     */
     class WhereAreYouModal {
         
         constructor() {
@@ -24,34 +13,27 @@ define([
             this.isLoading = false;
         }
 
-        /**
-         * Inizializza il modulo
-         */
         async init() {
             try {
-                // Recupera configurazione passata da PHP
                 this.config = window.M.cfg.whereareyou_config || {};
-                
-                // Carica le stringhe di lingua
+
+                // AGGIUNGI QUESTA RIGA DI DEBUG
+                console.log('Debug - Config ricevuta:', this.config);
+                console.log('Debug - Tutte le chiavi config:', Object.keys(this.config));
+                console.log('Debug - Ajax URL:', this.config.ajax_url);
+                console.log('Debug - Logout URL:', this.config.logout_url);
+                console.log('Debug - window.M.cfg completo:', window.M.cfg);
+        
                 await this.loadLanguageStrings();
-                
-                // Renderizza e mostra la modal
                 await this.renderModal();
-                
-                // Aggiunge event listeners
                 this.attachEventListeners();
-                
                 console.log('WhereAreYou Modal inizializzata');
-                
             } catch (error) {
                 console.error('Errore inizializzazione WhereAreYou Modal:', error);
                 Notification.exception(error);
             }
         }
 
-        /**
-         * Carica le stringhe di lingua
-         */
         async loadLanguageStrings() {
             const strings = await Str.get_strings([
                 {key: 'modal_title', component: 'local_whereareyou'},
@@ -86,9 +68,6 @@ define([
             };
         }
 
-        /**
-         * Prepara i dati per il template
-         */
         prepareTemplateData() {
             const currentDept = this.config.current_department || '';
             const currentPos = this.config.current_position || '';
@@ -136,42 +115,25 @@ define([
             };
         }
 
-        /**
-         * Renderizza la modal usando il template Mustache
-         */
         async renderModal() {
             try {
                 const templateData = this.prepareTemplateData();
-                
-                // Renderizza il template
                 const html = await Templates.render('local_whereareyou/modal', templateData);
-                
-                // Aggiunge al DOM
                 document.body.insertAdjacentHTML('beforeend', html);
-                
-                // Salva riferimento all'elemento
                 this.modalElement = document.getElementById('whereareyou-modal-backdrop');
-                
-                // Mostra la modal con animazione
                 this.showModal();
-                
             } catch (error) {
                 console.error('Errore rendering modal:', error);
                 throw error;
             }
         }
 
-        /**
-         * Mostra la modal
-         */
         showModal() {
             if (this.modalElement) {
                 this.modalElement.style.display = 'flex';
-                // Forza il reflow per attivare l'animazione CSS
                 this.modalElement.offsetHeight;
                 this.modalElement.classList.add('show');
                 
-                // Focus sul primo campo
                 const firstSelect = this.modalElement.querySelector('#whereareyou-department');
                 if (firstSelect) {
                     firstSelect.focus();
@@ -179,9 +141,6 @@ define([
             }
         }
 
-        /**
-         * Nasconde la modal
-         */
         hideModal() {
             if (this.modalElement) {
                 this.modalElement.style.display = 'none';
@@ -190,13 +149,9 @@ define([
             }
         }
 
-        /**
-         * Aggiunge event listeners
-         */
         attachEventListeners() {
             if (!this.modalElement) return;
 
-            // Bottone Salva
             const saveBtn = this.modalElement.querySelector('#whereareyou-save-btn');
             if (saveBtn) {
                 saveBtn.addEventListener('click', (e) => {
@@ -205,7 +160,6 @@ define([
                 });
             }
 
-            // Bottone Logout
             const logoutBtn = this.modalElement.querySelector('#whereareyou-logout-btn');
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', (e) => {
@@ -214,7 +168,6 @@ define([
                 });
             }
 
-            // Submit del form
             const form = this.modalElement.querySelector('#whereareyou-form');
             if (form) {
                 form.addEventListener('submit', (e) => {
@@ -222,41 +175,24 @@ define([
                     this.handleSave();
                 });
             }
-
-            // Escape key per chiudere (opzionale - al momento non implementato)
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && this.modalElement && !this.isLoading) {
-                    // Nota: per ora non chiudiamo con Escape perché vogliamo che l'utente scelga
-                    console.log('Escape premuto - modal rimane aperta');
-                }
-            });
         }
 
-        /**
-         * Gestisce il salvataggio dei dati
-         */
         async handleSave() {
             if (this.isLoading) return;
 
             try {
-                // Recupera i valori
                 const department = this.modalElement.querySelector('#whereareyou-department').value;
                 const position = this.modalElement.querySelector('#whereareyou-position').value;
 
-                // Validazione client-side
                 if (!department || !position) {
                     await Notification.alert('Attenzione', 'Seleziona sia il dipartimento che la posizione.');
                     return;
                 }
 
-                // Mostra loading
                 this.setLoading(true);
-
-                // Invia i dati via AJAX
                 const success = await this.saveData(department, position);
 
                 if (success) {
-                    // Successo - nascondi modal
                     this.hideModal();
                     await Notification.alert('Successo', 'Dati salvati correttamente!');
                 } else {
@@ -271,10 +207,32 @@ define([
             }
         }
 
-        /**
-         * Invia dati al server via AJAX
-         */
         async saveData(department, position) {
+            try {
+                const Ajax = await import('core/ajax');
+                
+                const response = await Ajax.call([{
+                    methodname: 'local_whereareyou_save_data',
+                    args: {
+                        department: department,
+                        position: position
+                    }
+                }]);
+                
+                if (response[0] && response[0].success) {
+                    console.log('Data saved via Web Service:', response[0]);
+                    return true;
+                } else {
+                    throw new Error(response[0]?.message || 'Save failed');
+                }
+                
+            } catch (error) {
+                console.error('Web Service Error:', error);
+                return await this.saveDataFallback(department, position);
+            }
+        }
+
+        async saveDataFallback(department, position) {
             try {
                 const formData = new FormData();
                 formData.append('action', 'save');
@@ -295,24 +253,21 @@ define([
                 const data = await response.json();
                 
                 if (data.success) {
+                    console.log('Data saved via fallback AJAX');
                     return true;
                 } else {
                     throw new Error(data.error || 'Errore sconosciuto');
                 }
 
             } catch (error) {
-                console.error('Errore AJAX:', error);
+                console.error('Fallback AJAX Error:', error);
                 throw error;
             }
         }
 
-        /**
-         * Gestisce il logout
-         */
         handleLogout() {
             if (this.isLoading) return;
             
-            // Redirect alla pagina di logout
             if (this.config.logout_url) {
                 window.location.href = this.config.logout_url;
             } else {
@@ -320,9 +275,6 @@ define([
             }
         }
 
-        /**
-         * Mostra/nasconde stato di loading
-         */
         setLoading(loading) {
             this.isLoading = loading;
             
@@ -344,13 +296,9 @@ define([
         }
     }
 
-    // Istanza singola del modulo
     let modalInstance = null;
 
     return {
-        /**
-         * Punto di ingresso del modulo
-         */
         init: function() {
             if (!modalInstance) {
                 modalInstance = new WhereAreYouModal();
@@ -358,9 +306,6 @@ define([
             modalInstance.init();
         },
 
-        /**
-         * Per testing - mostra modal programmaticamente
-         */
         showModal: function() {
             if (!modalInstance) {
                 modalInstance = new WhereAreYouModal();
