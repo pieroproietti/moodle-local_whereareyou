@@ -99,6 +99,10 @@ Per problemi o domande, consulta la documentazione di Moodle o contatta l'ammini
 6. **Controlli sessione** → previene ri-visualizzazione indesiderata
 
 ## NOTE
-Il web service in realtà FUNZIONA - ma Il JavaScript usa PRIMA il web service, quindi fa il fallback su AJAX. Questo metodo è più professionale e segue le linee guida Moodle.
+* L'Hook che rileva evento è costituito da [db/hooks.pho](./db/hooks.php) il quale chiama [classes/hook_callbacks.php](./classes/hook_callbacks.php);
+
+* In [classes/hook_callbacks.php](./classes/hook_callbacks.php) il codice JavaScript deve essere caricato con injection diretta, questo è cruciale.
+
+* Il [web service](./db/services.php) in realtà FUNZIONA - ma Il JavaScript usa PRIMA il web service, quindi fa il fallback su AJAX. Questo metodo è più professionale e segue le linee guida Moodle.
 
 Si consiglia, pertanto di lasciarlo così com'è.
