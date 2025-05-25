@@ -109,4 +109,6 @@ Per problemi o domande, consulta la documentazione di Moodle o contatta l'ammini
 
 * Il [web service](./db/services.php) in realtà FUNZIONA - ma Il JavaScript usa PRIMA il web service, quindi fa il fallback su AJAX. Questo metodo è più professionale e segue le linee guida Moodle.
 
-Si consiglia, pertanto di lasciarlo così com'è.
+* La customizzazione dei campi `department` e `position` dell'esempio può essere customizzata su [db/install.php](./db/install.php).
+
+
