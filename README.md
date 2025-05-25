@@ -34,32 +34,6 @@ Il plugin creerà automaticamente:
 - I dati vengono salvati nei campi personalizzati del profilo
 - La modal è sempre visibile (anche se i campi sono già compilati)
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant Browser
-    participant Moodle
-    participant Database
-    
-    User->>Browser: Esegue login
-    Browser->>Moodle: Richiesta pagina post-login
-    Moodle->>Browser: Pagina con hook JavaScript
-    Browser->>Moodle: Carica modulo AMD
-    Moodle->>Browser: Modal.js e template
-    Browser->>User: Mostra modal
-    User->>Browser: Seleziona valori e conferma
-    Browser->>Moodle: Chiamata Web Service (primaria)
-    alt Web Service disponibile
-        Moodle->>Database: Salva campi personalizzati
-        Moodle->>Browser: Conferma salvataggio
-    else Fallback AJAX
-        Browser->>Moodle: Chiamata AJAX
-        Moodle->>Database: Salva campi personalizzati
-        Moodle->>Browser: Conferma salvataggio
-    end
-    Browser->>User: Chiude modal/feedback
-```
-
 ## Requisiti
 
 - Moodle 5.0+
@@ -89,6 +63,31 @@ Per problemi o domande, consulta la documentazione di Moodle o contatta l'ammini
 * `templates/modal.mustache` - Template interfaccia
 
 ## Flusso Funzionale
+```mermaid
+sequenceDiagram
+    participant User
+    participant Browser
+    participant Moodle
+    participant Database
+    
+    User->>Browser: Esegue login
+    Browser->>Moodle: Richiesta pagina post-login
+    Moodle->>Browser: Pagina con hook JavaScript
+    Browser->>Moodle: Carica modulo AMD
+    Moodle->>Browser: Modal.js e template
+    Browser->>User: Mostra modal
+    User->>Browser: Seleziona valori e conferma
+    Browser->>Moodle: Chiamata Web Service (primaria)
+    alt Web Service disponibile
+        Moodle->>Database: Salva campi personalizzati
+        Moodle->>Browser: Conferma salvataggio
+    else Fallback AJAX
+        Browser->>Moodle: Chiamata AJAX
+        Moodle->>Database: Salva campi personalizzati
+        Moodle->>Browser: Conferma salvataggio
+    end
+    Browser->>User: Chiude modal/feedback
+```
 
 ### **Flusso identificato (Modal post-login)**:
 1. **Hook rileva evento** → inietta JavaScript nell'header della pagina
