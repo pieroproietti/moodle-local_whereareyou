@@ -1,0 +1,23 @@
+{
+  "name": "moodle-local_whereareyou",
+  "version": "1.1.0",
+  "description": "Un plugin moderno per Moodle 5+ che mostra una finestra modale post-login per forzare gli utenti ad aggiornare il proprio dipartimento e la posizione.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/pieroproietti/moodle-local_whereareyou.git"
+  },
+  "author": "Piero Proietti",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pieroproietti/moodle-local_whereareyou/issues"
+  },
+  "homepage": "https://github.com/pieroproietti/moodle-local_whereareyou#readme",
+  "devDependencies": {
+    "eslint": "^9.27.0",
+    "eslint-config-xo": "^0.47.0"
+  }
+}
